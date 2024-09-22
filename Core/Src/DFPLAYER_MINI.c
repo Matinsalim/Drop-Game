@@ -42,8 +42,11 @@ void DF_PlayFromStart(void)
   Send_cmd(0x03,0x00,0x01);
   HAL_Delay(200);
 }
-
-
+void DF_Choose (uint8_t par)
+{
+	Send_cmd(0x03, 0,par);
+	HAL_Delay(200);
+}
 void DF_Init (uint8_t volume)
 {
 	Send_cmd(0x3F, 0x00, Source);
@@ -73,11 +76,6 @@ void DF_Previous (void)
 void DF_Playback (void)
 {
 	Send_cmd(0x0D, 0, 0);
-	HAL_Delay(200);
-}
-void DF_Choose (uint8_t par)
-{
-	Send_cmd(0x03, 0,par);
 	HAL_Delay(200);
 }
 

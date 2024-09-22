@@ -1,8 +1,8 @@
 ../Core/Src/DFPLAYER_MINI.c:30:6:Send_cmd	40	static
 ../Core/Src/DFPLAYER_MINI.c:40:6:DF_PlayFromStart	8	static
-../Core/Src/DFPLAYER_MINI.c:47:6:DF_Init	16	static
-../Core/Src/DFPLAYER_MINI.c:55:6:DF_Next	8	static
-../Core/Src/DFPLAYER_MINI.c:61:6:DF_Pause	8	static
-../Core/Src/DFPLAYER_MINI.c:67:6:DF_Previous	8	static
-../Core/Src/DFPLAYER_MINI.c:73:6:DF_Playback	8	static
-../Core/Src/DFPLAYER_MINI.c:78:6:DF_Choose	16	static
+../Core/Src/DFPLAYER_MINI.c:45:6:DF_Choose	16	static
+../Core/Src/DFPLAYER_MINI.c:50:6:DF_Init	16	static
+../Core/Src/DFPLAYER_MINI.c:58:6:DF_Next	8	static
+../Core/Src/DFPLAYER_MINI.c:64:6:DF_Pause	8	static
+../Core/Src/DFPLAYER_MINI.c:70:6:DF_Previous	8	static
+../Core/Src/DFPLAYER_MINI.c:76:6:DF_Playback	8	static

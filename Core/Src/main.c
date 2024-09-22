@@ -22,11 +22,13 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "DFPLAYER_MINI.h"
-
+#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+#define SIZE 10
+
 
 /* USER CODE END PTD */
 
@@ -41,6 +43,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim3;
+
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
@@ -51,6 +55,7 @@ UART_HandleTypeDef huart2;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -61,6 +66,9 @@ uint8_t state = 0;
 uint8_t waiting_For_Start = 0;
 uint8_t button_Clicked = 1;
 uint8_t playing_Game = 2;
+uint8_t randomNumber[16]={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+uint16_t data = 0;
+uint32_t seed = 0;
 
 
 
@@ -180,6 +188,16 @@ void segment_Update(int num)
 }
 
 
+void shuffle(uint8_t *array, uint8_t size)
+{
+	for (int i = size - 1; i > 0; i--) {
+		int j = rand() % (i + 1);
+
+		int temp = array[i];
+		array[i] = array[j];
+		array[j] = temp;
+	}
+}
 
 
 void button_Click()
@@ -190,8 +208,82 @@ void button_Click()
 		segment_Update(i);
 		HAL_Delay(1000);
 	}
-	DF_Choose(1);
+	segment_Update(10);
 	state=playing_Game;
+}
+
+//void set_shiftregister_bit(uint8_t num)
+//{
+//	// reset all bits
+//
+//	// set one bit to start shift
+//	HAL_GPIO_WritePin(SER_GPIO_Port, SER_Pin, 1);
+//	HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin,1);
+//	HAL_Delay(10);
+//	HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin,0);
+//	HAL_Delay(10);
+//	HAL_GPIO_WritePin(SER_GPIO_Port, SER_Pin, 1);
+//
+//
+//	// shift num times
+//	for(int i = 0; i < num; i++)
+//	{
+//		HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin,1);
+//		HAL_Delay(10);
+//		HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin,0);
+//		HAL_Delay(10);
+//	}
+//
+//	// latch output
+//
+//}
+
+
+void start_Game()
+{
+	DF_Choose(1);
+	shuffle(randomNumber, 16);
+
+	HAL_GPIO_WritePin(MR_GPIO_Port, MR_Pin, 0);
+	HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, 1);
+	HAL_Delay(1);
+	HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, 0);
+	HAL_Delay(1);
+	HAL_GPIO_WritePin(MR_GPIO_Port, MR_Pin, 1);
+	HAL_Delay(1);
+
+	for(int i = 0; i<16; i++)
+	{
+
+		data = data | (0x01 << randomNumber[i]);
+		for(int j=0;j<16;j++)
+		{
+			HAL_GPIO_WritePin(SER_GPIO_Port, SER_Pin, (data >> j) & 1);
+			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, 1);
+			HAL_Delay(1);
+			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, 0);
+			HAL_Delay(1);
+		}
+		segment_Update(randomNumber[i]);
+		HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, 1);
+		HAL_Delay(1);
+		HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, 0);
+		HAL_Delay(1);
+
+
+		//		set_shiftregister_bit(randomNumber[i]);
+		HAL_Delay(1000);
+	}
+
+	HAL_GPIO_WritePin(MR_GPIO_Port, MR_Pin, 0);
+	HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, 1);
+	HAL_Delay(1);
+	HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, 0);
+	HAL_Delay(1);
+	segment_Update(10);
+	DF_Pause();
+	data=0;
+	state=waiting_For_Start;
 }
 
 /* USER CODE END 0 */
@@ -226,12 +318,17 @@ int main(void)
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
 	MX_USART2_UART_Init();
+	MX_TIM3_Init();
 	/* USER CODE BEGIN 2 */
-	  DF_Init(30);
-//	  DF_PlayFromStart();
-	HAL_GPIO_WritePin(MCU_LED_GPIO_Port,MCU_LED_Pin,1);
-	HAL_Delay(1000);
-	HAL_GPIO_WritePin(MCU_LED_GPIO_Port,MCU_LED_Pin,0);
+	DF_Init(30);
+	HAL_TIM_Base_Start(&htim3);
+
+	seed = __HAL_TIM_GET_COUNTER(&htim3);
+	srand(seed);
+	HAL_GPIO_WritePin(MR_GPIO_Port, MR_Pin, 0);
+	HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, 1);
+	HAL_Delay(10);
+	HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, 0);
 
 	/* USER CODE END 2 */
 
@@ -242,22 +339,17 @@ int main(void)
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
-
-
-		if(state==waiting_For_Start)//check ask & start button
+		if(state==waiting_For_Start)//check coin & ask & start button
 		{
 			if(!HAL_GPIO_ReadPin(Ext_IO1_GPIO_Port, Ext_IO1_Pin))
 				state = button_Clicked;
+			shuffle(randomNumber, 16);
 		}
 		else if(state==button_Clicked)
-		{
 			button_Click();
-		}
+
 		else if(state==playing_Game)
-		{
-		}
-
-
+			start_Game();
 	}
 	/* USER CODE END 3 */
 }
@@ -295,6 +387,51 @@ void SystemClock_Config(void)
 	{
 		Error_Handler();
 	}
+}
+
+/**
+ * @brief TIM3 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_TIM3_Init(void)
+{
+
+	/* USER CODE BEGIN TIM3_Init 0 */
+
+	/* USER CODE END TIM3_Init 0 */
+
+	TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+	TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+	/* USER CODE BEGIN TIM3_Init 1 */
+
+	/* USER CODE END TIM3_Init 1 */
+	htim3.Instance = TIM3;
+	htim3.Init.Prescaler = 0;
+	htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+	htim3.Init.Period = 48000-1;
+	htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+	if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+	if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+	if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	/* USER CODE BEGIN TIM3_Init 2 */
+
+	/* USER CODE END TIM3_Init 2 */
+
 }
 
 /**
