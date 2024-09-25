@@ -1,4 +1,4 @@
-Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
+Core/Src/FLASH_PAGE.o: ../Core/Src/FLASH_PAGE.c ../Core/Inc/FLASH_PAGE.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h \
  ../Core/Inc/stm32f0xx_hal_conf.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_rcc.h \
@@ -27,11 +27,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h \
- ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
- ../Core/Inc/tim.h ../Core/Inc/main.h ../Core/Inc/usart.h \
- ../Core/Inc/gpio.h ../Core/Inc/DFPLAYER_MINI.h ../Core/Inc/ask.h \
- ../Core/Inc/askConfig.h ../Core/Inc/FLASH_PAGE.h
-../Core/Inc/main.h:
+ ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h
+../Core/Inc/FLASH_PAGE.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 ../Core/Inc/stm32f0xx_hal_conf.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_rcc.h:
@@ -61,11 +58,3 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h:
-../Core/Inc/tim.h:
-../Core/Inc/main.h:
-../Core/Inc/usart.h:
-../Core/Inc/gpio.h:
-../Core/Inc/DFPLAYER_MINI.h:
-../Core/Inc/ask.h:
-../Core/Inc/askConfig.h:
-../Core/Inc/FLASH_PAGE.h:

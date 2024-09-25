@@ -69,10 +69,12 @@ void Error_Handler(void);
 #define Ext_BTN_GPIO_Port GPIOF
 #define ASK_IN_SIG_Pin GPIO_PIN_1
 #define ASK_IN_SIG_GPIO_Port GPIOA
+#define ASK_IN_SIG_EXTI_IRQn EXTI0_1_IRQn
 #define Ext_IO4_Pin GPIO_PIN_1
 #define Ext_IO4_GPIO_Port GPIOB
 #define Ext_IO3_Pin GPIO_PIN_2
 #define Ext_IO3_GPIO_Port GPIOB
+#define Ext_IO3_EXTI_IRQn EXTI2_3_IRQn
 #define Ext_IO2_Pin GPIO_PIN_10
 #define Ext_IO2_GPIO_Port GPIOB
 #define Ext_IO1_Pin GPIO_PIN_11

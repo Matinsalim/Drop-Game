@@ -1,0 +1,7 @@
+../Core/Src/ask.c:8:6:ask_init	24	static
+../Core/Src/ask.c:20:6:ask_callBackPinChange	16	static
+../Core/Src/ask.c:46:6:ask_loop	32	static,ignoring_inline_asm
+../Core/Src/ask.c:107:6:ask_available	16	static
+../Core/Src/ask.c:124:6:ask_read	32	static
+../Core/Src/ask.c:142:9:ask_checkChannelLast4Bit	112	dynamic
+../Core/Src/ask.c:157:9:ask_checkChannelLast8Bit	24	static
