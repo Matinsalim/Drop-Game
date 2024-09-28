@@ -25,23 +25,20 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "DFPLAYER_MINI.h"
+#include "stdbool.h"
+#include "ask.h"
+#include "FLASH_PAGE.h"
+#include <stdio.h>
 #include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
-#include "stdbool.h"
-#include "ask.h"
-#include <stdio.h>
-#include "FLASH_PAGE.h"
-
 #define SIZE 10
-#define NONE 10
 
+#define NONE 10
 #define P 98
 #define E 99
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -68,10 +65,19 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t state = 0;
-uint8_t waiting_For_Start = 0;
-uint8_t button_Clicked = 1;
-uint8_t playing_Game = 2;
+typedef enum{
+	idle,
+	learning,
+	learned
+}learning_state_t;
+learning_state_t ask_learning_state = idle;
+typedef enum{
+	 waiting_For_Start,
+	 button_Clicked,
+	 playing_Game,
+}state_Of_Game_t;
+state_Of_Game_t game_State = waiting_For_Start;
+
 uint8_t randomNumber[16]={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 uint16_t data = 0xffff;
 uint32_t seed = 0;
@@ -82,23 +88,16 @@ ask_t rf433;
 uint32_t ask_code_in_flash;
 uint8_t code[3];
 
-typedef enum{
-	idle,
-	learning,
-	learned
-}learning_state_t;
-learning_state_t ask_learning_state = idle;
+
 
 void ShiftOut(uint16_t data);
 void DF_Choose(uint8_t);
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)
 {
-	if(!HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin))
-		state = button_Clicked;
+		if(!HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin))
+			game_State = button_Clicked;
 }
-
-
 
 void reset_Shift_Register()
 {
@@ -106,6 +105,7 @@ void reset_Shift_Register()
 	HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, 1);
 	HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, 0);
 }
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	reset_Shift_Register();
@@ -304,7 +304,7 @@ void button_Click()
 		HAL_Delay(1000);
 	}
 	segment_Update(NONE);
-	state=playing_Game;
+	game_State=playing_Game;
 }
 
 void start_Game()
@@ -322,7 +322,7 @@ void start_Game()
 	segment_Update(NONE);
 	DF_Pause();
 	data=0xffff;
-	state=waiting_For_Start;
+	game_State=waiting_For_Start;
 }
 
 void blinking()
@@ -336,6 +336,67 @@ void blinking()
 	}
 }
 
+void check_And_Learn_Ask()
+{
+	ask_loop(&rf433);
+	if (ask_available(&rf433))
+	{
+		ask_read(&rf433, code, NULL, NULL);
+		if(ask_code_in_flash == (code[0] | (code[1] << 8) | (code[2] << 16)))
+		{
+			HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 1);
+			remote_pressed = true;
+			HAL_Delay(5);
+		}
+		else
+		{
+			remote_pressed = false;
+			HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 0);
+		}
+
+	}
+	else
+	{
+		remote_pressed = false;
+		HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 0);
+	}
+
+	// Learn Procedure ...
+	if(ask_learning_state == idle)
+	{
+		if(!HAL_GPIO_ReadPin(Ext_BTN_GPIO_Port, Ext_BTN_Pin))
+		{
+			HAL_TIM_Base_Start(&htim14);
+			htim14.Instance->CNT=0;
+			ask_learning_state = learning;
+		}
+	}
+	else if(ask_learning_state == learning)
+	{
+		// wait for 5 seconds
+		if(htim14.Instance->CNT>5000)
+		{
+			// ask code is valid, so save it ...
+			ask_code_in_flash = code[0] | (code[1] << 8) | (code[2] << 16);
+			blinking();
+			Flash_Write_Data(0x08007000, &ask_code_in_flash, 1);
+			HAL_TIM_Base_Stop(&htim14);
+			ask_learning_state = learned;
+		}
+
+		if(HAL_GPIO_ReadPin(Ext_BTN_GPIO_Port, Ext_BTN_Pin))	// BTN is released, learning procedure failed
+		{
+			ask_learning_state = idle;
+			HAL_TIM_Base_Stop(&htim14);
+		}
+	}
+	else // learned
+	{
+		// wait for BTN to release
+		if(HAL_GPIO_ReadPin(Ext_BTN_GPIO_Port, Ext_BTN_Pin))
+			ask_learning_state = idle;
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -344,7 +405,6 @@ void blinking()
  */
 int main(void)
 {
-
 	/* USER CODE BEGIN 1 */
 
 	/* USER CODE END 1 */
@@ -375,101 +435,34 @@ int main(void)
 	/* USER CODE BEGIN 2 */
 	DF_Init(30);
 	HAL_TIM_Base_Start(&htim3);
-	HAL_TIM_Base_Start_IT(&htim15);
+//	HAL_TIM_Base_Start_IT(&htim15);//###########################################################################
 	seed = __HAL_TIM_GET_COUNTER(&htim3);
 	srand(seed);
-	HAL_GPIO_WritePin(MR_GPIO_Port, MR_Pin, 0);
-	HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, 1);
-	HAL_Delay(10);
-	HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, 0);
-
+	reset_Shift_Register();
 	ask_init(&rf433,ASK_IN_SIG_GPIO_Port,ASK_IN_SIG_Pin);
-
-	// Read ASK code in Flash
-
-//	Flash_Read_Data(0x0801FC00, &ask_code_in_flash, 1);////////////////////////////////////////////////////////////////////////////////
-
+	Flash_Read_Data(0x08007000, &ask_code_in_flash, 1);	// Read ASK code in Flash
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
+		// Receive the ask code
+			check_And_Learn_Ask();
+
+				if(game_State==waiting_For_Start)//check coin & ask & start button
+				{
+//					segment_Update(E);//###########################################################################
+//					shuffle(randomNumber, 16);//###########################################################################
+				}
+				else if(game_State==button_Clicked)
+					button_Click();
+
+				else if(game_State==playing_Game)
+					start_Game();
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
-
-		// Receive the ask code
-		ask_loop(&rf433);
-		if (ask_available(&rf433))
-		{
-			ask_read(&rf433, code, NULL, NULL);
-			if(ask_code_in_flash == (code[0] | (code[1] << 8) | (code[2] << 16)))
-			{
-				HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 1);
-				remote_pressed = true;
-				HAL_Delay(10);
-			}
-			else
-			{
-				remote_pressed = false;
-				HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 0);
-			}
-
-		}
-		else
-		{
-			remote_pressed = false;
-			HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 0);
-		}
-
-		// Learn Procedure ...
-		if(ask_learning_state == idle)
-		{
-			if(!HAL_GPIO_ReadPin(Ext_BTN_GPIO_Port, Ext_BTN_Pin))
-			{
-				HAL_TIM_Base_Start(&htim14);
-				htim14.Instance->CNT=0;
-				ask_learning_state = learning;
-			}
-		}
-		else if(ask_learning_state == learning)
-		{
-			// wait for 5 seconds
-			if(htim14.Instance->CNT>5000) //12500 = 5 seconds
-			{
-				// ask code is valid, so save it ...
-				ask_code_in_flash = code[0] | (code[1] << 8) | (code[2] << 16);
-				blinking();
-//				Flash_Write_Data(0x0801FC00, &ask_code_in_flash, 1);
-				HAL_TIM_Base_Stop(&htim14);
-				ask_learning_state = learned;
-			}
-
-			if(HAL_GPIO_ReadPin(Ext_BTN_GPIO_Port, Ext_BTN_Pin))	// BTN is released, learning procedure failed
-			{
-				ask_learning_state = idle;
-				HAL_TIM_Base_Stop(&htim14);
-			}
-		}
-		else // learned
-		{
-			// wait for BTN to release
-			if(HAL_GPIO_ReadPin(Ext_BTN_GPIO_Port, Ext_BTN_Pin))
-				ask_learning_state = idle;
-		}
-
-
-		if(state==waiting_For_Start)//check coin & ask & start button
-		{
-			segment_Update(E);
-			shuffle(randomNumber, 16);
-		}
-		else if(state==button_Clicked)
-			button_Click();
-
-		else if(state==playing_Game)
-			start_Game();
 	}
 	/* USER CODE END 3 */
 }
