@@ -60,8 +60,8 @@ all: main-build
 main-build: Magnet_Game.elf secondary-outputs
 
 # Tool invocations
-Magnet_Game.elf Magnet_Game.map: $(OBJS) $(USER_OBJS) C:\Users\TronikaPC\Desktop\Magnet\ Game\Magnet_Game\STM32F030C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Magnet_Game.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"C:\Users\TronikaPC\Desktop\Magnet Game\Magnet_Game\STM32F030C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Magnet_Game.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Magnet_Game.elf Magnet_Game.map: $(OBJS) $(USER_OBJS) C:\Users\TronikaPC\Desktop\MicroCodes\Magnet\ Game\Magnet_Game\STM32F030C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Magnet_Game.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"C:\Users\TronikaPC\Desktop\MicroCodes\Magnet Game\Magnet_Game\STM32F030C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Magnet_Game.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

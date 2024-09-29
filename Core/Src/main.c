@@ -82,8 +82,10 @@ uint8_t randomNumber[16]={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 uint16_t data = 0xffff;
 uint32_t seed = 0;
 uint8_t x = 0;
+uint8_t state_Of_Segment = 0;
+uint8_t timer = 0;
 int time_cnt = 0;
-uint8_t remote_pressed = true;
+uint8_t remote_pressed = false;
 ask_t rf433;
 uint32_t ask_code_in_flash;
 uint8_t code[3];
@@ -96,7 +98,10 @@ void DF_Choose(uint8_t);
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)
 {
 		if(!HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin))
-			game_State = button_Clicked;
+			if(remote_pressed==1)
+				game_State = button_Clicked;
+
+
 }
 
 void reset_Shift_Register()
@@ -249,24 +254,40 @@ void segment_Update(int num)
 	}
 	else if(num==E)
 	{
-		HAL_GPIO_WritePin(A_GPIO_Port, A_Pin,1);
-		HAL_Delay(150);
-		HAL_GPIO_WritePin(A_GPIO_Port, A_Pin,0);
-		HAL_GPIO_WritePin(B_GPIO_Port, B_Pin,1);
-		HAL_Delay(150);
-		HAL_GPIO_WritePin(B_GPIO_Port, B_Pin,0);
-		HAL_GPIO_WritePin(C_GPIO_Port, C_Pin,1);
-		HAL_Delay(150);
-		HAL_GPIO_WritePin(C_GPIO_Port, C_Pin,0);
-		HAL_GPIO_WritePin(D_GPIO_Port, D_Pin,1);
-		HAL_Delay(150);
-		HAL_GPIO_WritePin(D_GPIO_Port, D_Pin,0);
-		HAL_GPIO_WritePin(E_GPIO_Port, E_Pin,1);
-		HAL_Delay(150);
-		HAL_GPIO_WritePin(E_GPIO_Port, E_Pin,0);
-		HAL_GPIO_WritePin(F_GPIO_Port, F_Pin,1);
-		HAL_Delay(150);
-		HAL_GPIO_WritePin(F_GPIO_Port, F_Pin,0);
+			if(state_Of_Segment==0)
+			{
+				HAL_GPIO_WritePin(A_GPIO_Port, A_Pin,0);
+				HAL_GPIO_WritePin(B_GPIO_Port, B_Pin,1);
+			}
+			else if(state_Of_Segment==1)
+			{
+				HAL_GPIO_WritePin(B_GPIO_Port, B_Pin,0);
+				HAL_GPIO_WritePin(C_GPIO_Port, C_Pin,1);
+			}
+			else if(state_Of_Segment==2)
+			{
+				HAL_GPIO_WritePin(C_GPIO_Port, C_Pin,0);
+				HAL_GPIO_WritePin(D_GPIO_Port, D_Pin,1);
+			}
+			else if(state_Of_Segment==3)
+			{
+				HAL_GPIO_WritePin(D_GPIO_Port, D_Pin,0);
+				HAL_GPIO_WritePin(E_GPIO_Port, E_Pin,1);
+			}
+			else if(state_Of_Segment==4)
+			{
+				HAL_GPIO_WritePin(E_GPIO_Port, E_Pin,0);
+				HAL_GPIO_WritePin(F_GPIO_Port, F_Pin,1);
+			}
+
+			else if(state_Of_Segment==5)
+			{
+				HAL_GPIO_WritePin(F_GPIO_Port, F_Pin,0);
+				HAL_GPIO_WritePin(A_GPIO_Port, A_Pin,1);
+			}
+
+			else if(state_Of_Segment==6)
+				state_Of_Segment=0;
 	}
 
 }
@@ -284,7 +305,6 @@ void shuffle(uint8_t *array, uint8_t size)
 
 void ShiftOut(uint16_t data)
 {
-
 	for (int i = 0; i < 16; i++)
 	{
 		HAL_GPIO_WritePin(SER_GPIO_Port, SER_Pin, (data & (1 << (15 - i))) ? 1 : 0);
@@ -322,6 +342,7 @@ void start_Game()
 	segment_Update(NONE);
 	DF_Pause();
 	data=0xffff;
+	remote_pressed=0;
 	game_State=waiting_For_Start;
 }
 
@@ -342,7 +363,7 @@ void check_And_Learn_Ask()
 	if (ask_available(&rf433))
 	{
 		ask_read(&rf433, code, NULL, NULL);
-		if(ask_code_in_flash == (code[0] | (code[1] << 8) | (code[2] << 16)))
+		if(ask_code_in_flash == (code[0] | (code[1] << 8) | (0x00 << 16)))
 		{
 			HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 1);
 			remote_pressed = true;
@@ -356,39 +377,30 @@ void check_And_Learn_Ask()
 
 	}
 	else
-	{
-		remote_pressed = false;
 		HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 0);
-	}
 
-	// Learn Procedure ...
-	if(ask_learning_state == idle)
+	if(ask_learning_state == idle)	// Learn Procedure ...
 	{
 		if(!HAL_GPIO_ReadPin(Ext_BTN_GPIO_Port, Ext_BTN_Pin))
 		{
-			HAL_TIM_Base_Start(&htim14);
-			htim14.Instance->CNT=0;
+			timer=0;
 			ask_learning_state = learning;
 		}
 	}
 	else if(ask_learning_state == learning)
 	{
-		// wait for 5 seconds
-		if(htim14.Instance->CNT>5000)
+		if(timer==35)// wait for 5 seconds
 		{
 			// ask code is valid, so save it ...
-			ask_code_in_flash = code[0] | (code[1] << 8) | (code[2] << 16);
+			ask_code_in_flash = code[0] | (code[1] << 8) | (0x00 << 16);
 			blinking();
 			Flash_Write_Data(0x08007000, &ask_code_in_flash, 1);
-			HAL_TIM_Base_Stop(&htim14);
 			ask_learning_state = learned;
 		}
 
 		if(HAL_GPIO_ReadPin(Ext_BTN_GPIO_Port, Ext_BTN_Pin))	// BTN is released, learning procedure failed
-		{
 			ask_learning_state = idle;
-			HAL_TIM_Base_Stop(&htim14);
-		}
+
 	}
 	else // learned
 	{
@@ -397,109 +409,128 @@ void check_And_Learn_Ask()
 			ask_learning_state = idle;
 	}
 }
+
+void timer_Update()
+{
+	if(htim14.Instance->CNT>150)
+	{
+		htim14.Instance->CNT=0;
+		state_Of_Segment++;
+		timer++;
+	}
+}
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
+  * @brief  The application entry point.
+  * @retval int
+  */
 int main(void)
 {
-	/* USER CODE BEGIN 1 */
 
-	/* USER CODE END 1 */
+  /* USER CODE BEGIN 1 */
 
-	/* MCU Configuration--------------------------------------------------------*/
+  /* USER CODE END 1 */
 
-	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  /* MCU Configuration--------------------------------------------------------*/
 
-	/* USER CODE BEGIN Init */
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* USER CODE END Init */
+  /* USER CODE BEGIN Init */
 
-	/* Configure the system clock */
-	SystemClock_Config();
+  /* USER CODE END Init */
 
-	/* USER CODE BEGIN SysInit */
+  /* Configure the system clock */
+  SystemClock_Config();
 
-	/* USER CODE END SysInit */
+  /* USER CODE BEGIN SysInit */
 
-	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_USART2_UART_Init();
-	MX_TIM3_Init();
-	MX_TIM15_Init();
-	MX_TIM6_Init();
-	MX_TIM14_Init();
-	/* USER CODE BEGIN 2 */
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_USART2_UART_Init();
+  MX_TIM3_Init();
+  MX_TIM15_Init();
+  MX_TIM6_Init();
+  MX_TIM14_Init();
+  /* USER CODE BEGIN 2 */
 	DF_Init(30);
 	HAL_TIM_Base_Start(&htim3);
-//	HAL_TIM_Base_Start_IT(&htim15);//###########################################################################
+	HAL_TIM_Base_Start_IT(&htim15);
+	HAL_TIM_Base_Start(&htim14);
 	seed = __HAL_TIM_GET_COUNTER(&htim3);
 	srand(seed);
 	reset_Shift_Register();
 	ask_init(&rf433,ASK_IN_SIG_GPIO_Port,ASK_IN_SIG_Pin);
 	Flash_Read_Data(0x08007000, &ask_code_in_flash, 1);	// Read ASK code in Flash
-	/* USER CODE END 2 */
+  /* USER CODE END 2 */
 
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	while (1)
 	{
 		// Receive the ask code
 			check_And_Learn_Ask();
 
+
+
 				if(game_State==waiting_For_Start)//check coin & ask & start button
 				{
-//					segment_Update(E);//###########################################################################
-//					shuffle(randomNumber, 16);//###########################################################################
+					timer_Update();
+					segment_Update(E);
+					shuffle(randomNumber, 16);
 				}
 				else if(game_State==button_Clicked)
 					button_Click();
 
 				else if(game_State==playing_Game)
 					start_Game();
-		/* USER CODE END WHILE */
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
 	}
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
+  * @brief System Clock Configuration
+  * @retval None
+  */
 void SystemClock_Config(void)
 {
-	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-	/** Initializes the RCC Oscillators according to the specified parameters
-	 * in the RCC_OscInitTypeDef structure.
-	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-	{
-		Error_Handler();
-	}
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL12;
+  RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
-	/** Initializes the CPU, AHB and APB buses clocks
-	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-			|RCC_CLOCKTYPE_PCLK1;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-	{
-		Error_Handler();
-	}
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /* USER CODE BEGIN 4 */
@@ -507,33 +538,33 @@ void SystemClock_Config(void)
 /* USER CODE END 4 */
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
 void Error_Handler(void)
 {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	__disable_irq();
 	while (1)
 	{
 	}
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
- * @brief  Reports the name of the source file and the source line number
- *         where the assert_param error has occurred.
- * @param  file: pointer to the source file name
- * @param  line: assert_param error line source number
- * @retval None
- */
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-	/* USER CODE BEGIN 6 */
+  /* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-	/* USER CODE END 6 */
+  /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
