@@ -1,4 +1,4 @@
- /* USER CODE BEGIN Header */
+/* USER CODE BEGIN Header */
 /**
  ******************************************************************************
  * @file           : main.c
@@ -75,15 +75,16 @@ typedef enum{
 	waiting_For_Start,
 	button_Clicked,
 	playing_Game,
+	setting,
 }state_Of_Game_t;
 state_Of_Game_t game_State = waiting_For_Start;
 
 uint8_t randomNumber[10]={0,1,2,3,4,5,6,8,11,12};
-uint16_t data = 0xFBFF;
+uint16_t data = 0x0000;
 uint32_t seed = 0;
 uint8_t x = 0;
 uint8_t state_Of_Segment = 0;
-uint8_t timer = 0;
+uint8_t timer_For_Ask_Lern = 0;
 uint8_t remote_pressed = false;
 uint8_t turn = 0;
 ask_t rf433;
@@ -92,6 +93,13 @@ uint8_t code[3];
 uint8_t sticks_Of_Dropped = 0;
 uint8_t number_Of_Stick [16] = {9,3,4,5,6,7,8,0,2,0,0,0,1,0,0,0};
 uint8_t button_Blinking = 0;
+uint8_t turn_Setting;
+uint8_t drop_Delay_Setting;
+uint8_t number_Display_Delay_Setting;
+uint8_t hold_timer_cnt = 0, not_hold_timer_cnt = 0;
+uint8_t coin = 0;
+uint8_t row = 0;
+int b=0;
 
 void ShiftOut(uint16_t data);
 void DF_Choose(uint8_t);
@@ -100,7 +108,7 @@ void segment_Update(int num);
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)
 {
 	if(!HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin))
-		if(remote_pressed == 1)
+		if(coin == 1)
 		{
 			if (game_State == waiting_For_Start)
 			{
@@ -293,7 +301,7 @@ void segment_Update(int num)
 			HAL_GPIO_WritePin(A_GPIO_Port, A_Pin,1);
 		}
 
-		else if(state_Of_Segment==6)
+		else if(state_Of_Segment>=6)
 			state_Of_Segment=0;
 	}
 
@@ -340,7 +348,7 @@ void start_Game()
 		if(sticks_Of_Dropped<10)
 		{
 			if(sticks_Of_Dropped==0)
-				DF_Choose(1);
+				DF_Choose(1); // Plays Music
 
 			HAL_GPIO_TogglePin(MCU_LED_GPIO_Port, MCU_LED_Pin);
 			segment_Update(number_Of_Stick[randomNumber[sticks_Of_Dropped]]);
@@ -354,15 +362,84 @@ void start_Game()
 			turn--;
 			sticks_Of_Dropped=0;
 			if (turn==0)
-				remote_pressed=0;
+				coin=0;
 			segment_Update(NONE);
 			DF_Pause();
-			data=0xFBFF;
+			data=0x0000;
 			game_State=waiting_For_Start;
 		}
 
 }
+void settings()
+{
+	ask_read(&rf433, code, NULL, NULL);
 
+	if((ask_code_in_flash & 0x0000FFFF) == (code[0] | (code[1] << 8)))
+	{
+		if((code[2] & 0x0F) == 0x01)	// A
+		{
+			segment_Update(5);
+		}
+		else if((code[2] & 0x0F) == 0x02)	// B
+		{
+			segment_Update(6);
+		}
+		else if((code[2] & 0x0F) == 0x04)	// C
+		{
+			segment_Update(7);
+		}
+		else if((code[2] & 0x0F) == 0x08)	// D
+		{
+			segment_Update(8);
+		}
+	}
+
+	code[0] = 0;
+	code[1] = 0;
+	code[2] = 0;
+
+//	ask_read(&rf433, code, NULL, NULL);
+//
+//	if((ask_code_in_flash+0x000001)  == (code[0] | (code[1] << 8) | (code[2] << 16)))
+//	{
+//
+//		segment_Update(2);
+//		code[0] = 0;
+//		code[1] = 0;
+//		code[2] = 0;
+//
+//	}
+
+
+
+//	if(!HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin))
+//	{
+//		while(!HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin));
+//		HAL_Delay(50);
+//
+//		b++;
+//	}
+//
+//	segment_Update(b);
+
+}
+
+void hold_key()
+{
+	if(hold_timer_cnt>=30)
+	{
+		if(game_State==setting)
+			game_State =waiting_For_Start;
+		else
+			game_State=setting;
+
+		hold_timer_cnt=0;
+		segment_Update(NONE);
+	}
+
+
+}
+// ASK usage
 void blinking()
 {
 	for(int i=0;i<=5;i++)
@@ -380,36 +457,35 @@ void check_And_Learn_Ask()
 	if (ask_available(&rf433))
 	{
 		ask_read(&rf433, code, NULL, NULL);
-		if(ask_code_in_flash == (code[0] | (code[1] << 8) | (0x00 << 16)))
+		if(ask_code_in_flash == (code[0] | (code[1] << 8) | (code[2] << 16)))
 		{
 			HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 1);
-			remote_pressed = true;
+			coin = 1;
 			HAL_Delay(5);
 		}
-		else
-		{
-			remote_pressed = false;
-			HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 0);
-		}
+		code[0] = 0;
+		code[1] = 0;
+		code[2] = 0;
 
 	}
 	else
 		HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 0);
 
+
 	if(ask_learning_state == idle)	// Learn Procedure ...
 	{
 		if(!HAL_GPIO_ReadPin(Ext_BTN_GPIO_Port, Ext_BTN_Pin))
 		{
-			timer=0;
+			timer_For_Ask_Lern=0;
 			ask_learning_state = learning;
 		}
 	}
 	else if(ask_learning_state == learning)
 	{
-		if(timer==35)// wait for 5 seconds
+		if(timer_For_Ask_Lern==35)// wait for 5 seconds
 		{
 			// ask code is valid, so save it ...
-			ask_code_in_flash = code[0] | (code[1] << 8) | (0x00 << 16);
+			ask_code_in_flash = code[0] | (code[1] << 8) | (code[2] << 16);
 			blinking();
 			Flash_Write_Data(0x08007000, &ask_code_in_flash, 1);
 			ask_learning_state = learned;
@@ -433,48 +509,74 @@ void timer_Update()
 	{
 		htim14.Instance->CNT=0;
 		state_Of_Segment++;
-		timer++;
+		timer_For_Ask_Lern++;
 		button_Blinking=!button_Blinking;
+
+		ask_read(&rf433, code, NULL, NULL);
+		if(ask_code_in_flash == (code[0] | (code[1] << 8) | (code[2] << 16)))
+		{
+			if(!ask_read(&rf433, code, NULL, NULL))
+			{
+				segment_Update(1);
+				hold_timer_cnt++;
+				not_hold_timer_cnt = 0;
+  			}
+			code[0] = 0;
+			code[1] = 0;
+			code[2] = 0;
+		}
+		else
+		{
+			not_hold_timer_cnt++;
+			if(not_hold_timer_cnt >= 4)		// 4 ---> 4*150 = 0.6s
+			{
+				not_hold_timer_cnt = 0;
+				hold_timer_cnt = 0;
+			}
+		}
+		code[0] = 0;
+		code[1] = 0;
+		code[2] = 0;
 
 	}
 }
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
+  * @brief  The application entry point.
+  * @retval int
+  */
 int main(void)
 {
 
-	/* USER CODE BEGIN 1 */
+  /* USER CODE BEGIN 1 */
 
-	/* USER CODE END 1 */
+  /* USER CODE END 1 */
 
-	/* MCU Configuration--------------------------------------------------------*/
+  /* MCU Configuration--------------------------------------------------------*/
 
-	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* USER CODE BEGIN Init */
+  /* USER CODE BEGIN Init */
 
-	/* USER CODE END Init */
+  /* USER CODE END Init */
 
-	/* Configure the system clock */
-	SystemClock_Config();
+  /* Configure the system clock */
+  SystemClock_Config();
 
-	/* USER CODE BEGIN SysInit */
+  /* USER CODE BEGIN SysInit */
 
-	/* USER CODE END SysInit */
+  /* USER CODE END SysInit */
 
-	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_USART2_UART_Init();
-	MX_TIM3_Init();
-	MX_TIM15_Init();
-	MX_TIM6_Init();
-	MX_TIM14_Init();
-	/* USER CODE BEGIN 2 */
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_USART2_UART_Init();
+  MX_TIM3_Init();
+  MX_TIM15_Init();
+  MX_TIM6_Init();
+  MX_TIM14_Init();
+  /* USER CODE BEGIN 2 */
 	DF_Init(30);
 	HAL_TIM_Base_Start(&htim3);
 	HAL_TIM_Base_Start_IT(&htim15);
@@ -485,10 +587,10 @@ int main(void)
 	ask_init(&rf433,ASK_IN_SIG_GPIO_Port,ASK_IN_SIG_Pin);
 	Flash_Read_Data(0x08007000, &ask_code_in_flash, 1);	// Read ASK code in Flash
 //	sticks_Of_Dropped = 0;
-	/* USER CODE END 2 */
+  /* USER CODE END 2 */
 
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	while (1)
 	{
 		// Receive the ask code
@@ -496,69 +598,73 @@ int main(void)
 
 		if(game_State==waiting_For_Start)//check coin & ask & start button
 		{
-			timer_Update();
 			segment_Update(EFFECT);
+			timer_Update();
 			shuffle(randomNumber, 10);
-			if(remote_pressed)
+			if(coin)
 			{
 				if(button_Blinking)
 					data = 0xFFFF;
 				else
 					data = 0xFBFF;
 			}
-
-
+			hold_key();
 
 		}
 		else if(game_State==button_Clicked)
 			button_Click();
-
 		else if(game_State==playing_Game)
 			start_Game();
+		else if(game_State==setting)
+		{
+			settings();
+			timer_Update();
+			hold_key();
+		}
+//			setting();
+    /* USER CODE END WHILE */
 
-		/* USER CODE END WHILE */
-
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 	}
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
+  * @brief System Clock Configuration
+  * @retval None
+  */
 void SystemClock_Config(void)
 {
-	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-	/** Initializes the RCC Oscillators according to the specified parameters
-	 * in the RCC_OscInitTypeDef structure.
-	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL12;
-	RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-	{
-		Error_Handler();
-	}
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL12;
+  RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
-	/** Initializes the CPU, AHB and APB buses clocks
-	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-			|RCC_CLOCKTYPE_PCLK1;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
-	{
-		Error_Handler();
-	}
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /* USER CODE BEGIN 4 */
@@ -566,33 +672,33 @@ void SystemClock_Config(void)
 /* USER CODE END 4 */
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
 void Error_Handler(void)
 {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	__disable_irq();
 	while (1)
 	{
 	}
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
- * @brief  Reports the name of the source file and the source line number
- *         where the assert_param error has occurred.
- * @param  file: pointer to the source file name
- * @param  line: assert_param error line source number
- * @retval None
- */
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-	/* USER CODE BEGIN 6 */
+  /* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-	/* USER CODE END 6 */
+  /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
