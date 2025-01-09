@@ -27,6 +27,7 @@
 #include "DFPLAYER_MINI.h"
 #include "stdbool.h"
 #include "ask.h"
+#include "ask_hal.h"
 #include "FLASH_PAGE.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,7 +90,7 @@ uint8_t remote_pressed = false;
 uint8_t turn = 0;
 ask_t rf433;
 uint32_t ask_code_in_flash;
-uint8_t code[3];
+uint8_t code[5];
 uint8_t sticks_Of_Dropped = 0;
 uint8_t number_Of_Stick [16] = {9,3,4,5,6,7,8,0,2,0,0,0,1,0,0,0};
 uint8_t button_Blinking = 0;
@@ -99,7 +100,6 @@ uint8_t number_Display_Delay_Setting;
 uint8_t hold_timer_cnt = 0, not_hold_timer_cnt = 0;
 uint8_t coin = 0;
 uint8_t row = 0;
-int b=0;
 
 void ShiftOut(uint16_t data);
 void DF_Choose(uint8_t);
@@ -107,16 +107,21 @@ void segment_Update(int num);
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)
 {
-	if(!HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin))
-		if(coin == 1)
-		{
-			if (game_State == waiting_For_Start)
-			{
-				game_State = button_Clicked;
-				if(turn==0)
-					turn = 3;
-			}
-		}
+	if (GPIO_PIN == RX433_PIN)
+	{
+		ask_pinchange_callback(&ask433);
+	}
+
+//	if(!HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin))
+//		if(coin == 1)
+//		{
+//			if (game_State == waiting_For_Start)
+//			{
+//				game_State = button_Clicked;
+//				if(turn==0)
+//					turn = 3;
+//			}
+//		}
 }
 
 void reset_Shift_Register()
@@ -372,31 +377,32 @@ void start_Game()
 }
 void settings()
 {
-	ask_read(&rf433, code, NULL, NULL);
+//	ask_read(&rf433, code, NULL, NULL);
+//	ask_read_bytes(&ask433, code);
+//
+//	if((ask_code_in_flash & 0x0000FFFF) == (code[0] | (code[1] << 8)))
+//	{
+//		if((code[2] & 0x0F) == 0x01)	// A
+//		{
+//			segment_Update(5);
+//		}
+//		else if((code[2] & 0x0F) == 0x02)	// B
+//		{
+//			segment_Update(6);
+//		}
+//		else if((code[2] & 0x0F) == 0x04)	// C
+//		{
+//			segment_Update(7);
+//		}
+//		else if((code[2] & 0x0F) == 0x08)	// D
+//		{
+//			segment_Update(8);
+//		}
+//	}
 
-	if((ask_code_in_flash & 0x0000FFFF) == (code[0] | (code[1] << 8)))
-	{
-		if((code[2] & 0x0F) == 0x01)	// A
-		{
-			segment_Update(5);
-		}
-		else if((code[2] & 0x0F) == 0x02)	// B
-		{
-			segment_Update(6);
-		}
-		else if((code[2] & 0x0F) == 0x04)	// C
-		{
-			segment_Update(7);
-		}
-		else if((code[2] & 0x0F) == 0x08)	// D
-		{
-			segment_Update(8);
-		}
-	}
-
-	code[0] = 0;
-	code[1] = 0;
-	code[2] = 0;
+//	code[0] = 0;
+//	code[1] = 0;
+//	code[2] = 0;
 
 //	ask_read(&rf433, code, NULL, NULL);
 //
@@ -453,19 +459,21 @@ void blinking()
 
 void check_And_Learn_Ask()
 {
-	ask_loop(&rf433);
+
+
 	if (ask_available(&rf433))
 	{
-		ask_read(&rf433, code, NULL, NULL);
-		if(ask_code_in_flash == (code[0] | (code[1] << 8) | (code[2] << 16)))
-		{
+
+		ask_read_bytes(&ask433, code);
+//		if(ask_code_in_flash == (code[0] | (code[1] << 8) | (code[2] << 16)))
+//		{
 			HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 1);
-			coin = 1;
+//			coin = 1;
 			HAL_Delay(5);
-		}
-		code[0] = 0;
-		code[1] = 0;
-		code[2] = 0;
+//		}
+//		code[0] = 0;
+//		code[1] = 0;
+//		code[2] = 0;
 
 	}
 	else
@@ -512,18 +520,18 @@ void timer_Update()
 		timer_For_Ask_Lern++;
 		button_Blinking=!button_Blinking;
 
-		ask_read(&rf433, code, NULL, NULL);
+		ask_read_bytes(&ask433, code);
 		if(ask_code_in_flash == (code[0] | (code[1] << 8) | (code[2] << 16)))
 		{
-			if(!ask_read(&rf433, code, NULL, NULL))
-			{
-				segment_Update(1);
-				hold_timer_cnt++;
-				not_hold_timer_cnt = 0;
-  			}
-			code[0] = 0;
-			code[1] = 0;
-			code[2] = 0;
+//			if(!ask_read(&rf433, code, NULL, NULL))
+//			{
+			segment_Update(1);
+			hold_timer_cnt++;
+			not_hold_timer_cnt = 0;
+//  			}
+//			code[0] = 0;
+//			code[1] = 0;
+//			code[2] = 0;
 		}
 		else
 		{
@@ -534,9 +542,9 @@ void timer_Update()
 				hold_timer_cnt = 0;
 			}
 		}
-		code[0] = 0;
-		code[1] = 0;
-		code[2] = 0;
+//		code[0] = 0;
+//		code[1] = 0;
+//		code[2] = 0;
 
 	}
 }
@@ -577,16 +585,17 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
-	DF_Init(30);
-	HAL_TIM_Base_Start(&htim3);
-	HAL_TIM_Base_Start_IT(&htim15);
-	HAL_TIM_Base_Start(&htim14);
-	seed = __HAL_TIM_GET_COUNTER(&htim3);
-	srand(seed);
-	reset_Shift_Register();
-	ask_init(&rf433,ASK_IN_SIG_GPIO_Port,ASK_IN_SIG_Pin);
-	Flash_Read_Data(0x08007000, &ask_code_in_flash, 1);	// Read ASK code in Flash
-//	sticks_Of_Dropped = 0;
+  DF_Init(30);
+  HAL_TIM_Base_Start(&htim3);
+  HAL_TIM_Base_Start_IT(&htim15);
+  HAL_TIM_Base_Start(&htim14);
+
+  seed = __HAL_TIM_GET_COUNTER(&htim3);
+  srand(seed);
+  reset_Shift_Register();
+  ask_init(&rf433);
+  Flash_Read_Data(0x08007000, &ask_code_in_flash, 1);	// Read ASK code in Flash
+  //	sticks_Of_Dropped = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */

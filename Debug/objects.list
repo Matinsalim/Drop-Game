@@ -1,6 +1,7 @@
 "./Core/Src/DFPLAYER_MINI.o"
 "./Core/Src/FLASH_PAGE.o"
 "./Core/Src/ask.o"
+"./Core/Src/ask_hal_stm32_none.o"
 "./Core/Src/gpio.o"
 "./Core/Src/main.o"
 "./Core/Src/stm32f0xx_hal_msp.o"

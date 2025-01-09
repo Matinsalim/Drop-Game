@@ -8,6 +8,7 @@ C_SRCS += \
 ../Core/Src/DFPLAYER_MINI.c \
 ../Core/Src/FLASH_PAGE.c \
 ../Core/Src/ask.c \
+../Core/Src/ask_hal_stm32_none.c \
 ../Core/Src/gpio.c \
 ../Core/Src/main.c \
 ../Core/Src/stm32f0xx_hal_msp.c \
@@ -22,6 +23,7 @@ OBJS += \
 ./Core/Src/DFPLAYER_MINI.o \
 ./Core/Src/FLASH_PAGE.o \
 ./Core/Src/ask.o \
+./Core/Src/ask_hal_stm32_none.o \
 ./Core/Src/gpio.o \
 ./Core/Src/main.o \
 ./Core/Src/stm32f0xx_hal_msp.o \
@@ -36,6 +38,7 @@ C_DEPS += \
 ./Core/Src/DFPLAYER_MINI.d \
 ./Core/Src/FLASH_PAGE.d \
 ./Core/Src/ask.d \
+./Core/Src/ask_hal_stm32_none.d \
 ./Core/Src/gpio.d \
 ./Core/Src/main.d \
 ./Core/Src/stm32f0xx_hal_msp.d \
@@ -54,7 +57,7 @@ Core/Src/%.o Core/Src/%.su Core/Src/%.cyclo: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/DFPLAYER_MINI.cyclo ./Core/Src/DFPLAYER_MINI.d ./Core/Src/DFPLAYER_MINI.o ./Core/Src/DFPLAYER_MINI.su ./Core/Src/FLASH_PAGE.cyclo ./Core/Src/FLASH_PAGE.d ./Core/Src/FLASH_PAGE.o ./Core/Src/FLASH_PAGE.su ./Core/Src/ask.cyclo ./Core/Src/ask.d ./Core/Src/ask.o ./Core/Src/ask.su ./Core/Src/gpio.cyclo ./Core/Src/gpio.d ./Core/Src/gpio.o ./Core/Src/gpio.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32f0xx_hal_msp.cyclo ./Core/Src/stm32f0xx_hal_msp.d ./Core/Src/stm32f0xx_hal_msp.o ./Core/Src/stm32f0xx_hal_msp.su ./Core/Src/stm32f0xx_it.cyclo ./Core/Src/stm32f0xx_it.d ./Core/Src/stm32f0xx_it.o ./Core/Src/stm32f0xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f0xx.cyclo ./Core/Src/system_stm32f0xx.d ./Core/Src/system_stm32f0xx.o ./Core/Src/system_stm32f0xx.su ./Core/Src/tim.cyclo ./Core/Src/tim.d ./Core/Src/tim.o ./Core/Src/tim.su ./Core/Src/usart.cyclo ./Core/Src/usart.d ./Core/Src/usart.o ./Core/Src/usart.su
+	-$(RM) ./Core/Src/DFPLAYER_MINI.cyclo ./Core/Src/DFPLAYER_MINI.d ./Core/Src/DFPLAYER_MINI.o ./Core/Src/DFPLAYER_MINI.su ./Core/Src/FLASH_PAGE.cyclo ./Core/Src/FLASH_PAGE.d ./Core/Src/FLASH_PAGE.o ./Core/Src/FLASH_PAGE.su ./Core/Src/ask.cyclo ./Core/Src/ask.d ./Core/Src/ask.o ./Core/Src/ask.su ./Core/Src/ask_hal_stm32_none.cyclo ./Core/Src/ask_hal_stm32_none.d ./Core/Src/ask_hal_stm32_none.o ./Core/Src/ask_hal_stm32_none.su ./Core/Src/gpio.cyclo ./Core/Src/gpio.d ./Core/Src/gpio.o ./Core/Src/gpio.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32f0xx_hal_msp.cyclo ./Core/Src/stm32f0xx_hal_msp.d ./Core/Src/stm32f0xx_hal_msp.o ./Core/Src/stm32f0xx_hal_msp.su ./Core/Src/stm32f0xx_it.cyclo ./Core/Src/stm32f0xx_it.d ./Core/Src/stm32f0xx_it.o ./Core/Src/stm32f0xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f0xx.cyclo ./Core/Src/system_stm32f0xx.d ./Core/Src/system_stm32f0xx.o ./Core/Src/system_stm32f0xx.su ./Core/Src/tim.cyclo ./Core/Src/tim.d ./Core/Src/tim.o ./Core/Src/tim.su ./Core/Src/usart.cyclo ./Core/Src/usart.d ./Core/Src/usart.o ./Core/Src/usart.su
 
 .PHONY: clean-Core-2f-Src
 
