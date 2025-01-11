@@ -7,10 +7,10 @@
 ../Core/Src/main.c:333:6:button_Click	2
 ../Core/Src/main.c:346:6:start_Game	5
 ../Core/Src/main.c:373:6:settings	6
-../Core/Src/main.c:427:6:hold_key	3
-../Core/Src/main.c:443:6:blinking	2
-../Core/Src/main.c:454:6:check_And_Learn_Ask	9
-../Core/Src/main.c:506:6:timer_Update	5
-../Core/Src/main.c:549:5:main	7
-../Core/Src/main.c:636:6:SystemClock_Config	3
-../Core/Src/main.c:678:6:Error_Handler	1
+../Core/Src/main.c:399:6:hold_key	3
+../Core/Src/main.c:415:6:blinking	2
+../Core/Src/main.c:426:6:check_And_Learn_Ask	10
+../Core/Src/main.c:487:6:timer_Update	2
+../Core/Src/main.c:503:5:main	7
+../Core/Src/main.c:590:6:SystemClock_Config	3
+../Core/Src/main.c:632:6:Error_Handler	1

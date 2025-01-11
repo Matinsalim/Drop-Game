@@ -372,6 +372,7 @@ void start_Game()
 }
 void settings()
 {
+
 	ask_read(&rf433, code, NULL, NULL);
 
 	if((ask_code_in_flash & 0x0000FFFF) == (code[0] | (code[1] << 8)))
@@ -393,35 +394,6 @@ void settings()
 			segment_Update(8);
 		}
 	}
-
-	code[0] = 0;
-	code[1] = 0;
-	code[2] = 0;
-
-//	ask_read(&rf433, code, NULL, NULL);
-//
-//	if((ask_code_in_flash+0x000001)  == (code[0] | (code[1] << 8) | (code[2] << 16)))
-//	{
-//
-//		segment_Update(2);
-//		code[0] = 0;
-//		code[1] = 0;
-//		code[2] = 0;
-//
-//	}
-
-
-
-//	if(!HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin))
-//	{
-//		while(!HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin));
-//		HAL_Delay(50);
-//
-//		b++;
-//	}
-//
-//	segment_Update(b);
-
 }
 
 void hold_key()
@@ -462,11 +434,20 @@ void check_And_Learn_Ask()
 			HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 1);
 			coin = 1;
 			HAL_Delay(5);
-		}
-		code[0] = 0;
-		code[1] = 0;
-		code[2] = 0;
 
+			segment_Update(1);
+			hold_timer_cnt++;
+			not_hold_timer_cnt = 0;
+		}
+		else
+		{
+			not_hold_timer_cnt++;
+			if(not_hold_timer_cnt >= 4)		// 4 ---> 4*150 = 0.6s
+			{
+				not_hold_timer_cnt = 0;
+				hold_timer_cnt = 0;
+			}
+		}
 	}
 	else
 		HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 0);
@@ -511,33 +492,6 @@ void timer_Update()
 		state_Of_Segment++;
 		timer_For_Ask_Lern++;
 		button_Blinking=!button_Blinking;
-
-		ask_read(&rf433, code, NULL, NULL);
-		if(ask_code_in_flash == (code[0] | (code[1] << 8) | (code[2] << 16)))
-		{
-			if(!ask_read(&rf433, code, NULL, NULL))
-			{
-				segment_Update(1);
-				hold_timer_cnt++;
-				not_hold_timer_cnt = 0;
-  			}
-			code[0] = 0;
-			code[1] = 0;
-			code[2] = 0;
-		}
-		else
-		{
-			not_hold_timer_cnt++;
-			if(not_hold_timer_cnt >= 4)		// 4 ---> 4*150 = 0.6s
-			{
-				not_hold_timer_cnt = 0;
-				hold_timer_cnt = 0;
-			}
-		}
-		code[0] = 0;
-		code[1] = 0;
-		code[2] = 0;
-
 	}
 }
 /* USER CODE END 0 */

@@ -7,10 +7,10 @@
 ../Core/Src/main.c:333:6:button_Click	16	static
 ../Core/Src/main.c:346:6:start_Game	8	static
 ../Core/Src/main.c:373:6:settings	8	static
-../Core/Src/main.c:427:6:hold_key	8	static
-../Core/Src/main.c:443:6:blinking	16	static
-../Core/Src/main.c:454:6:check_And_Learn_Ask	8	static
-../Core/Src/main.c:506:6:timer_Update	8	static
-../Core/Src/main.c:549:5:main	8	static
-../Core/Src/main.c:636:6:SystemClock_Config	80	static
-../Core/Src/main.c:678:6:Error_Handler	8	static,ignoring_inline_asm
+../Core/Src/main.c:399:6:hold_key	8	static
+../Core/Src/main.c:415:6:blinking	16	static
+../Core/Src/main.c:426:6:check_And_Learn_Ask	8	static
+../Core/Src/main.c:487:6:timer_Update	8	static
+../Core/Src/main.c:503:5:main	8	static
+../Core/Src/main.c:590:6:SystemClock_Config	80	static
+../Core/Src/main.c:632:6:Error_Handler	8	static,ignoring_inline_asm
