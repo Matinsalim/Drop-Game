@@ -15,7 +15,7 @@ extern      ask_t ask315;
 
 void        ask_write_pin_433(bool data);
 bool        ask_read_pin_433(void);
-uint32_t    ask_micros_433(void);
+uint16_t    ask_micros_433(void);
 void        ask_init_rx433(void);
 //void        ask_init_tx433(void);
 void        ask_delay_ms_433(uint32_t delay_ms);
