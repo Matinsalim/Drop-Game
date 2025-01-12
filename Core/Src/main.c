@@ -377,48 +377,64 @@ void start_Game()
 
 }
 
-void difficultySettings(bool isNew)
+void difficultySettings()
 {
-	if(isNew)
-		if((ask_code_in_flash & 0x0000FFFF) == (code[0] | (code[1] << 8)))
-		{
+//	if((ask_code_in_flash & 0x0000FFFF) == (code[0] | (code[1] << 8)))
+//	{
+//		if((code[2] & 0x0F) == 0x04)	// C
+//		{
+//			difficulty += 2;
+//			if(difficulty >= 11)
+//				difficulty = 0;
+//		}
+//		else if((code[2] & 0x0F) == 0x08)	// D
+//		{
+//			if(difficulty == 0)
+//				difficulty = 10;
+//			else
+//				difficulty -= 2;
+//		}
+//	}
 
-			if((code[2] & 0x0F) == 0x04)	// C
-			{
-				difficulty += 2;
-				if(difficulty >= 11)
-					difficulty = 0;
-			}
-			else if((code[2] & 0x0F) == 0x08)	// D
-			{
-				if(difficulty == 0)
-					difficulty = 10;
-				else
-					difficulty -= 2;
-			}
-		}
+	if(HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin) == 0)
+	{
+		HAL_Delay(50);
+		while(HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin) == 0)
+			HAL_Delay(50);
+		difficulty += 2;
+		if(difficulty >= 11)
+			difficulty = 0;
+	}
+
 }
 
-void turnSettings(bool isNew)
+void turnSettings()
 {
+//	if((ask_code_in_flash & 0x0000FFFF) == (code[0] | (code[1] << 8)))
+//	{
+//		if((code[2] & 0x0F) == 0x04)	// C
+//		{
+//			turn_num++;
+//			if(turn_num >= 4)
+//				turn_num = 1;
+//		}
+//		else if((code[2] & 0x0F) == 0x08)	// D
+//		{
+//			turn_num--;
+//			if(turn_num <= 0)
+//				turn_num = 3;
+//		}
+//	}
 
-	if(isNew)
-		if((ask_code_in_flash & 0x0000FFFF) == (code[0] | (code[1] << 8)))
-		{
-
-			if((code[2] & 0x0F) == 0x04)	// C
-			{
-				turn_num++;
-				if(turn_num >= 4)
-					turn_num = 1;
-			}
-			else if((code[2] & 0x0F) == 0x08)	// D
-			{
-				turn_num--;
-				if(turn_num <= 0)
-					turn_num = 3;
-			}
-		}
+	if(HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin) == 0)
+	{
+		HAL_Delay(50);
+		while(HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin) == 0)
+			HAL_Delay(50);
+		turn_num += 1;
+		if(turn_num >= 4)
+			turn_num = 1;
+	}
 }
 
 void check_a_hold_key()
@@ -428,8 +444,7 @@ void check_a_hold_key()
 		if(game_State==difficulty_setting)
 		{
 			game_State =waiting_For_Start;
-//			Flash_Write_Data(0x08007000, &difficulty, 1);
-
+			Flash_Write_Data(0x08008000, &difficulty, 1);
 		}
 		else
 			game_State=difficulty_setting;
@@ -448,8 +463,9 @@ void check_b_hold_key()
 		if(game_State==turn_setting)
 		{
 			game_State =waiting_For_Start;
-//			Flash_Write_Data(0x08007000, &turn_num, 1);
+			Flash_Write_Data(0x08009000, &turn_num, 1);
 			coin = 0;
+			data=0x0000;
 		}
 		else
 			game_State=turn_setting;
@@ -472,12 +488,12 @@ void blinking()
 
 void check_And_Learn_Ask()
 {
-	bool isNew = false;
+//	bool isNew = false;
 
 	ask_loop(&rf433);
 	if (ask_available(&rf433))
 	{
-		isNew = ask_read(&rf433, code, NULL, NULL);
+		ask_read(&rf433, code, NULL, NULL);
 
 		// Check if is this ask code the main remote ?!
 		if((ask_code_in_flash & 0x0000FFFF) == (code[0] | (code[1] << 8)))
@@ -519,22 +535,21 @@ void check_And_Learn_Ask()
 				}
 			}
 
-
-			// Hold should be checked ....
-			if(game_State==difficulty_setting)
-			{
-				segment_Update(difficulty);
-				difficultySettings(isNew);
-				timer_Update();
-				check_a_hold_key();
-			}
-			else if(game_State==turn_setting)
-			{
-				segment_Update(turn_num);
-				turnSettings(isNew);
-				timer_Update();
-				check_b_hold_key();
-			}
+//			// Hold should be checked ....
+//			if(game_State==difficulty_setting)
+//			{
+//				segment_Update(difficulty);
+//				difficultySettings();
+//				timer_Update();
+//				check_a_hold_key();
+//			}
+//			else if(game_State==turn_setting)
+//			{
+//				segment_Update(turn_num);
+//				turnSettings();
+//				timer_Update();
+//				check_b_hold_key();
+//			}
 		}
 	}
 	else
@@ -580,12 +595,6 @@ void timer_Update()
 		state_Of_Segment++;
 		timer_For_Ask_Lern++;
 		button_Blinking=!button_Blinking;
-
-//		if(game_State==difficulty_setting)
-//			difficultySettings();
-//		else if(game_State==turn_setting)
-//			turnSettings();
-
 
 	}
 }
@@ -635,8 +644,8 @@ int main(void)
 	reset_Shift_Register();
 	ask_init(&rf433,ASK_IN_SIG_GPIO_Port,ASK_IN_SIG_Pin);
 	Flash_Read_Data(0x08007000, &ask_code_in_flash, 1);	// Read ASK code in Flash
-//	Flash_Read_Data(0x08008000, &difficulty, 1);
-//	Flash_Read_Data(0x08009000, &turn_num, 1);
+	Flash_Read_Data(0x08008000, &difficulty, 1);
+	Flash_Read_Data(0x08009000, &turn_num, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -666,20 +675,20 @@ int main(void)
 			button_Click();
 		else if(game_State==playing_Game)
 			start_Game();
-//		else if(game_State==difficulty_setting)
-//		{
-//			segment_Update(difficulty);
-//			difficultySettings();
-//			timer_Update();
-//			check_a_hold_key();
-//		}
-//		else if(game_State==turn_setting)
-//		{
-//			segment_Update(turn_num);
-//			turnSettings();
-//			timer_Update();
-//			check_b_hold_key();
-//		}
+		else if(game_State==difficulty_setting)
+		{
+			segment_Update(difficulty);
+			difficultySettings();
+			timer_Update();
+			check_a_hold_key();
+		}
+		else if(game_State==turn_setting)
+		{
+			segment_Update(turn_num);
+			turnSettings();
+			timer_Update();
+			check_b_hold_key();
+		}
 //			setting();
     /* USER CODE END WHILE */
 
