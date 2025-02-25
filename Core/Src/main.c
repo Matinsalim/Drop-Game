@@ -332,7 +332,7 @@ void ShiftOut(uint16_t data)
 
 void button_Click()
 {
-	DF_Choose(2);
+	DF_Choose(1);
 	data=0xFFFF;
 	for(int i = 3; i>=0; i--)
 	{
@@ -348,7 +348,7 @@ void start_Game()
 	if(sticks_Of_Dropped<10)
 	{
 		if(sticks_Of_Dropped==0)
-			DF_Choose(1); // Plays Music
+			DF_Choose(2); // Plays Music
 
 		HAL_GPIO_TogglePin(MCU_LED_GPIO_Port, MCU_LED_Pin);
 		if(difficulty<10)
@@ -635,6 +635,7 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
+  HAL_Delay(3000);
 	DF_Init(30);
 	HAL_TIM_Base_Start(&htim3);
 	HAL_TIM_Base_Start_IT(&htim15);
@@ -646,12 +647,15 @@ int main(void)
 	Flash_Read_Data(0x08007000, &ask_code_in_flash, 1);	// Read ASK code in Flash
 	Flash_Read_Data(0x08008000, &difficulty, 1);
 	Flash_Read_Data(0x08009000, &turn_num, 1);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1)
 	{
+
+
 		// Receive the ask code
 		check_And_Learn_Ask();
 
