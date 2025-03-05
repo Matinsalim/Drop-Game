@@ -109,6 +109,30 @@ void timer_Update();
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)
 {
+	if(!HAL_GPIO_ReadPin(Ext_IO1_GPIO_Port, Ext_IO1_Pin))
+		if(coin == 1)
+		{
+			if (game_State == waiting_For_Start)
+			{
+				game_State = button_Clicked;
+				if(turn==0)
+					turn = turn_num;
+			}
+					difficulty = 0;
+
+		}
+	if(!HAL_GPIO_ReadPin(Ext_IO2_GPIO_Port, Ext_IO2_Pin))
+		if(coin == 1)
+		{
+			if (game_State == waiting_For_Start)
+			{
+				game_State = button_Clicked;
+				if(turn==0)
+					turn = turn_num;
+			}
+			difficulty = 4;
+
+		}
 	if(!HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin))
 		if(coin == 1)
 		{
@@ -118,6 +142,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)
 				if(turn==0)
 					turn = turn_num;
 			}
+			difficulty = 8;
+
 		}
 }
 
@@ -377,36 +403,36 @@ void start_Game()
 
 }
 
-void difficultySettings()
-{
-//	if((ask_code_in_flash & 0x0000FFFF) == (code[0] | (code[1] << 8)))
+//void difficultySettings()
+//{
+////	if((ask_code_in_flash & 0x0000FFFF) == (code[0] | (code[1] << 8)))
+////	{
+////		if((code[2] & 0x0F) == 0x04)	// C
+////		{
+////			difficulty += 2;
+////			if(difficulty >= 11)
+////				difficulty = 0;
+////		}
+////		else if((code[2] & 0x0F) == 0x08)	// D
+////		{
+////			if(difficulty == 0)
+////				difficulty = 10;
+////			else
+////				difficulty -= 2;
+////		}
+////	}
+//
+//	if(HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin) == 0)
 //	{
-//		if((code[2] & 0x0F) == 0x04)	// C
-//		{
-//			difficulty += 2;
-//			if(difficulty >= 11)
-//				difficulty = 0;
-//		}
-//		else if((code[2] & 0x0F) == 0x08)	// D
-//		{
-//			if(difficulty == 0)
-//				difficulty = 10;
-//			else
-//				difficulty -= 2;
-//		}
+//		HAL_Delay(50);
+//		while(HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin) == 0)
+//			HAL_Delay(50);
+
+//		if(difficulty >= 11)
+//			difficulty = 0;
 //	}
-
-	if(HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin) == 0)
-	{
-		HAL_Delay(50);
-		while(HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin) == 0)
-			HAL_Delay(50);
-		difficulty += 2;
-		if(difficulty >= 11)
-			difficulty = 0;
-	}
-
-}
+//
+//}
 
 void turnSettings()
 {
@@ -437,23 +463,23 @@ void turnSettings()
 	}
 }
 
-void check_a_hold_key()
-{
-	if(a_hold_timer_cnt>=30)
-	{
-		if(game_State==difficulty_setting)
-		{
-			game_State =waiting_For_Start;
-			Flash_Write_Data(0x08008000, &difficulty, 1);
-		}
-		else
-			game_State=difficulty_setting;
-
-		a_hold_timer_cnt=0;
-		segment_Update(NONE);
-
-	}
-}
+//void check_a_hold_key()
+//{
+//	if(a_hold_timer_cnt>=30)
+//	{
+//		if(game_State==difficulty_setting)
+//		{
+//			game_State =waiting_For_Start;
+//			Flash_Write_Data(0x08008000, &difficulty, 1);
+//		}
+//		else
+//			game_State=difficulty_setting;
+//
+//		a_hold_timer_cnt=0;
+//		segment_Update(NONE);
+//
+//	}
+//}
 
 
 void check_b_hold_key()
@@ -671,7 +697,7 @@ int main(void)
 				else
 					data = 0xFBFF;
 			}
-			check_a_hold_key();
+//			check_a_hold_key();
 			check_b_hold_key();
 
 		}
@@ -682,9 +708,9 @@ int main(void)
 		else if(game_State==difficulty_setting)
 		{
 			segment_Update(difficulty);
-			difficultySettings();
+//			difficultySettings();
 			timer_Update();
-			check_a_hold_key();
+//			check_a_hold_key();
 		}
 		else if(game_State==turn_setting)
 		{
