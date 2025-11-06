@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -30,6 +31,7 @@
 #include "FLASH_PAGE.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "WS2811_12.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -629,6 +631,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_TIM3_Init();
   MX_TIM15_Init();
@@ -640,13 +643,15 @@ int main(void)
 	HAL_TIM_Base_Start(&htim3);
 	HAL_TIM_Base_Start_IT(&htim15);
 	HAL_TIM_Base_Start(&htim14);
-	seed = __HAL_TIM_GET_COUNTER(&htim3);
-	srand(seed);
+//	seed = __HAL_TIM_GET_COUNTER(&htim3);
+//	srand(seed);
 	reset_Shift_Register();
 	ask_init(&rf433,ASK_IN_SIG_GPIO_Port,ASK_IN_SIG_Pin);
 	Flash_Read_Data(0x08007000, &ask_code_in_flash, 1);	// Read ASK code in Flash
 	Flash_Read_Data(0x08008000, &difficulty, 1);
 	Flash_Read_Data(0x08009000, &turn_num, 1);
+
+//	memset(LED_Data, 0, sizeof(LED_Data));
 
   /* USER CODE END 2 */
 
@@ -659,10 +664,15 @@ int main(void)
 		// Receive the ask code
 		check_And_Learn_Ask();
 
-		// EXT_IO4 --> Automation Device Signal
-		if(HAL_GPIO_ReadPin(Ext_IO4_GPIO_Port, Ext_IO4_Pin) == 0)
-			coin = 1;
-//		coin = 1;
+		Set_LED(0, 0, 255, 0);
+		Set_LED(1, 255, 255, 255);
+		Set_LED(2, 255, 0, 0);
+		WS2812_Send();
+
+//		// EXT_IO4 --> Automation Device Signal
+//		if(HAL_GPIO_ReadPin(Ext_IO4_GPIO_Port, Ext_IO4_Pin) == 0)
+//			coin = 1;
+////		coin = 1;
 
 		if(game_State==waiting_For_Start)//check coin & ask & start button
 		{
@@ -762,8 +772,7 @@ void Error_Handler(void)
 	}
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
