@@ -355,8 +355,12 @@ void start_Game()
 		HAL_GPIO_TogglePin(MCU_LED_GPIO_Port, MCU_LED_Pin);
 		if(difficulty<10)
 		{
-			segment_Update(number_Of_Stick[randomNumber[sticks_Of_Dropped]]);
+			segment_Update(number_Of_Stick[randomNumber[sticks_Of_Dropped]]);			// "9 - ..." is bug of simkeshi
+			Set_LED(9 - number_Of_Stick[randomNumber[sticks_Of_Dropped]], 64, 128, 255);
+			WS2812_Send();
 			HAL_Delay(difficulty * 100);
+			Set_LED(9 - number_Of_Stick[randomNumber[sticks_Of_Dropped]], 0, 0, 0);
+			WS2812_Send();
 		}
 		else
 			HAL_Delay(1000);
@@ -446,7 +450,7 @@ void check_a_hold_key()
 		if(game_State==difficulty_setting)
 		{
 			game_State =waiting_For_Start;
-			Flash_Write_Data(0x08008000, &difficulty, 1);
+			Flash_Write_Data(0x08009000, &difficulty, 1);
 		}
 		else
 			game_State=difficulty_setting;
@@ -465,7 +469,7 @@ void check_b_hold_key()
 		if(game_State==turn_setting)
 		{
 			game_State =waiting_For_Start;
-			Flash_Write_Data(0x08009000, &turn_num, 1);
+			Flash_Write_Data(0x0800a000, &turn_num, 1);
 			coin = 0;
 			data=0x0000;
 		}
@@ -573,7 +577,7 @@ void check_And_Learn_Ask()
 			// ask code is valid, so save it ...
 			ask_code_in_flash = code[0] | (code[1] << 8) | (code[2] << 16);
 			blinking();
-			Flash_Write_Data(0x08007000, &ask_code_in_flash, 1);
+			Flash_Write_Data(0x08008000, &ask_code_in_flash, 1);
 			ask_learning_state = learned;
 		}
 
@@ -638,20 +642,49 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
-  HAL_Delay(3000);
-	DF_Init(30);
-	HAL_TIM_Base_Start(&htim3);
+
+//	HAL_TIM_Base_Start(&htim3);
 	HAL_TIM_Base_Start_IT(&htim15);
 	HAL_TIM_Base_Start(&htim14);
 //	seed = __HAL_TIM_GET_COUNTER(&htim3);
 //	srand(seed);
 	reset_Shift_Register();
 	ask_init(&rf433,ASK_IN_SIG_GPIO_Port,ASK_IN_SIG_Pin);
-	Flash_Read_Data(0x08007000, &ask_code_in_flash, 1);	// Read ASK code in Flash
-	Flash_Read_Data(0x08008000, &difficulty, 1);
-	Flash_Read_Data(0x08009000, &turn_num, 1);
+	Flash_Read_Data(0x08008000, &ask_code_in_flash, 1);	// Read ASK code in Flash
+	Flash_Read_Data(0x08009000, &difficulty, 1);
+	Flash_Read_Data(0x0800a000, &turn_num, 1);
 
 //	memset(LED_Data, 0, sizeof(LED_Data));
+
+	HAL_Delay(500);
+	  for(int i=0; i < 5; i++)
+	  {
+		  Set_LED(5 - i, 255, 255, 255);
+		  Set_LED(i + 5, 255, 255, 255);
+		  WS2812_Send();
+		  HAL_Delay(200);
+		  Set_LED(5 - i, 0, 0, 0);
+		  Set_LED(i + 5, 0, 0, 0);
+		  WS2812_Send();
+	  }
+
+	  HAL_Delay(500);
+
+	  for(int j = 0; j < 3; j++)
+	  {
+		  for(int i = 0; i < 10; i++)
+			  Set_LED(i, 255, 255, 255);
+		  WS2812_Send();
+		  HAL_Delay(150);
+		  for(int i = 0; i < 10; i++)
+			  Set_LED(i, 0, 0, 0);
+		  WS2812_Send();
+		  HAL_Delay(150);
+	  }
+
+
+	//  HAL_Delay(3000);
+		DF_Init(30);
 
   /* USER CODE END 2 */
 
@@ -663,11 +696,6 @@ int main(void)
 
 		// Receive the ask code
 		check_And_Learn_Ask();
-
-		Set_LED(0, 0, 255, 0);
-		Set_LED(1, 255, 255, 255);
-		Set_LED(2, 255, 0, 0);
-		WS2812_Send();
 
 //		// EXT_IO4 --> Automation Device Signal
 //		if(HAL_GPIO_ReadPin(Ext_IO4_GPIO_Port, Ext_IO4_Pin) == 0)

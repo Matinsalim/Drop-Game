@@ -38,7 +38,7 @@ void WS2812_Send (void)
 	uint32_t indx=0;
 	uint32_t color;
 
-	for (int i = 0; i < MAX_LED; i++)
+	for (int i = 0; i < 10; i++)
 	{
 		color = ((uint32_t)LED_Data[i][1] << 16) | ((uint32_t)LED_Data[i][2] << 8) | LED_Data[i][3];
 
