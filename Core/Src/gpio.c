@@ -90,11 +90,11 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(ASK_IN_SIG_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : Ext_IO3_Pin */
-  GPIO_InitStruct.Pin = Ext_IO3_Pin;
+  /*Configure GPIO pin : PB2 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(Ext_IO3_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : SA2_Pin SA1_Pin MCU_LED_Pin G_Pin
                            F_Pin */

@@ -109,6 +109,8 @@ uint8_t segment_num = 0;
 uint8_t game_time_s = 0;
 uint8_t seg_state = 0;
 uint16_t game_timer_ms = 0;
+uint32_t hall_sensor_ints = 0;
+uint8_t progress = 0;
 
 void ShiftOut(uint16_t data);
 void DF_Choose(uint8_t);
@@ -117,16 +119,26 @@ void timer_Update();
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)
 {
-	if(!HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin))
-		if(coin == 1)
+	if(GPIO_PIN == ASK_IN_SIG_Pin)
+	{
+//		if(!HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin))
+//			if(coin == 1)
+//			{
+//				if (game_State == waiting_For_Start)
+//				{
+//					game_State = button_Clicked;
+//					if(turn==0)
+//						turn = turn_num;
+//				}
+//			}
+	}
+	else if(GPIO_PIN == GPIO_PIN_2)	// Hall effect sensor
+	{
+		if(game_State == playing_Game)
 		{
-			if (game_State == waiting_For_Start)
-			{
-				game_State = button_Clicked;
-				if(turn==0)
-					turn = turn_num;
-			}
+			hall_sensor_ints++;
 		}
+	}
 }
 
 void reset_Shift_Register()
@@ -409,9 +421,10 @@ void button_Click()
 		segment_num = i;
 		HAL_Delay(700);
 		segment_num = NONE;
-		HAL_Delay(300);
+		HAL_Delay(200);
 	}
 	game_State=playing_Game;
+	DF_Choose(2);
 	htim14.Instance->CNT = 0;
 	game_time_s = 30;
 }
@@ -421,101 +434,55 @@ void start_Game()
 
 	segment_num = game_time_s;
 
-//	if(sticks_Of_Dropped<10)
-//	{
-//		if(sticks_Of_Dropped==0)
-//			DF_Choose(2); // Plays Music
-//
-//		HAL_GPIO_TogglePin(MCU_LED_GPIO_Port, MCU_LED_Pin);
-//		if(difficulty<10)
-//		{
-//			segment_Update(number_Of_Stick[randomNumber[sticks_Of_Dropped]]);			// "9 - ..." is bug of simkeshi
-//			Set_LED(9 - number_Of_Stick[randomNumber[sticks_Of_Dropped]], 64, 128, 255);
-//			WS2812_Send();
-//			HAL_Delay(difficulty * 100);
-//			Set_LED(9 - number_Of_Stick[randomNumber[sticks_Of_Dropped]], 0, 0, 0);
-//			WS2812_Send();
-//		}
-//		else
-//			HAL_Delay(1000);
-//
-//		data = data & (~(1 << randomNumber[sticks_Of_Dropped]));
-//		HAL_Delay(1500 + (800 - (difficulty*100)));
-//		sticks_Of_Dropped++;
-//	}
-//	else if(sticks_Of_Dropped==10)
-//	{
-//		turn--;
-//		sticks_Of_Dropped=0;
-//		if (turn==0)
-//			coin=0;
-//		segment_Update(NONE);
-//		DF_Pause();
-//		data=0x0000;
-//		game_State=waiting_For_Start;
-//	}
+	// write codes with "hall_sensor_ints"
+//	if(hall_sensor_ints < 30000)
+//		progress = hall_sensor_ints / 1000;
+//	else if(hall_sensor_ints < 100000)
+//		progress = hall_sensor_ints / 2000;
+//	else if(hall_sensor_ints < 150000)
+//		progress = hall_sensor_ints / 1875;
 
-}
+//	if(hall_sensor_ints < 30)
+//		progress = hall_sensor_ints / 1;
+//	else if(hall_sensor_ints < 100)
+//		progress = hall_sensor_ints / 2;
+//	else if(hall_sensor_ints < 150)
+//		progress = hall_sensor_ints / 1;
 
-void difficultySettings()
-{
-//	if((ask_code_in_flash & 0x0000FFFF) == (code[0] | (code[1] << 8)))
-//	{
-//		if((code[2] & 0x0F) == 0x04)	// C
-//		{
-//			difficulty += 2;
-//			if(difficulty >= 11)
-//				difficulty = 0;
-//		}
-//		else if((code[2] & 0x0F) == 0x08)	// D
-//		{
-//			if(difficulty == 0)
-//				difficulty = 10;
-//			else
-//				difficulty -= 2;
-//		}
-//	}
-
-	if(HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin) == 0)
+	if(hall_sensor_ints == 10)
 	{
-		HAL_Delay(50);
-		while(HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin) == 0)
-			HAL_Delay(50);
-		difficulty += 2;
-		if(difficulty >= 11)
-			difficulty = 0;
+		DF_Choose(3);
+		hall_sensor_ints++;
+	}
+	else if(hall_sensor_ints == 20)
+	{
+		DF_Choose(3);
+		hall_sensor_ints++;
+	}
+	else if(hall_sensor_ints == 30)
+	{
+		DF_Choose(5);
+		hall_sensor_ints++;
+
+		data = 0xFFF;
+		reset_Shift_Register();
+		HAL_GPIO_WritePin(MR_GPIO_Port, MR_Pin, 1);
+		ShiftOut(data);
+		HAL_Delay(500);
+		data = 0x000;
+		reset_Shift_Register();
+		HAL_GPIO_WritePin(MR_GPIO_Port, MR_Pin, 1);
+		ShiftOut(data);
 	}
 
+
+//	Set_LED(END_OF_LEDs_NUM - (progress * END_OF_LEDs_NUM / 100), 255, 255, 255);
+//	WS2812_Send();
+
+
 }
 
-void turnSettings()
-{
-//	if((ask_code_in_flash & 0x0000FFFF) == (code[0] | (code[1] << 8)))
-//	{
-//		if((code[2] & 0x0F) == 0x04)	// C
-//		{
-//			turn_num++;
-//			if(turn_num >= 4)
-//				turn_num = 1;
-//		}
-//		else if((code[2] & 0x0F) == 0x08)	// D
-//		{
-//			turn_num--;
-//			if(turn_num <= 0)
-//				turn_num = 3;
-//		}
-//	}
 
-	if(HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin) == 0)
-	{
-		HAL_Delay(50);
-		while(HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin) == 0)
-			HAL_Delay(50);
-		turn_num += 1;
-		if(turn_num >= 4)
-			turn_num = 1;
-	}
-}
 
 
 // ASK usage

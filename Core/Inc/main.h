@@ -70,9 +70,6 @@ void Error_Handler(void);
 #define ASK_IN_SIG_Pin GPIO_PIN_1
 #define ASK_IN_SIG_GPIO_Port GPIOA
 #define ASK_IN_SIG_EXTI_IRQn EXTI0_1_IRQn
-#define Ext_IO3_Pin GPIO_PIN_2
-#define Ext_IO3_GPIO_Port GPIOB
-#define Ext_IO3_EXTI_IRQn EXTI2_3_IRQn
 #define SA2_Pin GPIO_PIN_10
 #define SA2_GPIO_Port GPIOB
 #define SA1_Pin GPIO_PIN_11
