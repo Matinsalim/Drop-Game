@@ -38,7 +38,7 @@
 /* USER CODE BEGIN PTD */
 #define SIZE 10
 
-#define NONE 97
+#define NONE 120
 #define PAUSE 98
 #define EFFECT 99
 /* USER CODE END PTD */
@@ -77,8 +77,8 @@ typedef enum{
 	waiting_For_Start,
 	button_Clicked,
 	playing_Game,
-	difficulty_setting,
-	turn_setting,
+	win_state,
+	loose_state,
 }state_Of_Game_t;
 state_Of_Game_t game_State = waiting_For_Start;
 
@@ -103,6 +103,12 @@ uint8_t coin = 0;
 // Settings
 uint32_t difficulty;		// H, 0, 2, 4, 6, 8
 uint32_t turn_num;		// 1, 2, 3
+
+
+uint8_t segment_num = 0;
+uint8_t game_time_s = 0;
+uint8_t seg_state = 0;
+uint16_t game_timer_ms = 0;
 
 void ShiftOut(uint16_t data);
 void DF_Choose(uint8_t);
@@ -132,9 +138,48 @@ void reset_Shift_Register()
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	reset_Shift_Register();
-	HAL_GPIO_WritePin(MR_GPIO_Port, MR_Pin, 1);
-	ShiftOut(data);
+//	reset_Shift_Register();
+//	HAL_GPIO_WritePin(MR_GPIO_Port, MR_Pin, 1);
+//	ShiftOut(data);
+	if(htim->Instance == TIM14)	// every 1ms
+	{
+		// Segment Codes ...
+		if(segment_num != NONE)
+		{
+			int d0 = segment_num % 10;
+			int d1 = segment_num / 10;
+			seg_state++;
+			if(seg_state == 7)	// 5ms
+			{
+				HAL_GPIO_WritePin(SA1_GPIO_Port, SA1_Pin, 1);
+				HAL_GPIO_WritePin(SA2_GPIO_Port, SA2_Pin, 0);
+				segment_Update(d1);
+			}
+			else if(seg_state == 14)	// 10ms
+			{
+				HAL_GPIO_WritePin(SA1_GPIO_Port, SA1_Pin, 0);
+				HAL_GPIO_WritePin(SA2_GPIO_Port, SA2_Pin, 1);
+				segment_Update(d0);
+				seg_state = 0;
+			}
+		}
+		else
+		{
+			HAL_GPIO_WritePin(SA1_GPIO_Port, SA1_Pin, 0);
+			HAL_GPIO_WritePin(SA2_GPIO_Port, SA2_Pin, 0);
+		}
+
+		// game codes
+		if(game_State == playing_Game)
+		{
+			game_timer_ms++;
+			if(game_timer_ms == 1000)
+			{
+				game_timer_ms = 0;
+				game_time_s--;
+			}
+		}
+	}
 }
 
 void segment_Update(int num)
@@ -332,54 +377,83 @@ void ShiftOut(uint16_t data)
 	HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, 0);
 }
 
+
+//void display_segment()
+//{
+//	int d0 = segment_num % 10;
+//	int d1 = segment_num / 10;
+//
+//	HAL_GPIO_WritePin(SA1_GPIO_Port, SA1_Pin, 1);
+//	HAL_GPIO_WritePin(SA2_GPIO_Port, SA2_Pin, 0);
+//	segment_Update(d1);
+//	HAL_Delay(5);
+//	HAL_GPIO_WritePin(SA1_GPIO_Port, SA1_Pin, 0);
+//	HAL_GPIO_WritePin(SA2_GPIO_Port, SA2_Pin, 1);
+//	segment_Update(d0);
+//	HAL_Delay(5);
+//}
+
+void display_nothing()
+{
+	HAL_GPIO_WritePin(SA1_GPIO_Port, SA1_Pin, 0);
+	HAL_GPIO_WritePin(SA2_GPIO_Port, SA2_Pin, 0);
+	segment_Update(NONE);
+}
+
+
 void button_Click()
 {
 	DF_Choose(1);
-	data=0xFFFF;
-	for(int i = 3; i>=0; i--)
+	for(int i = 3; i >= 0; i--)
 	{
-		segment_Update(i);
-		HAL_Delay(1000);
+		segment_num = i;
+		HAL_Delay(700);
+		segment_num = NONE;
+		HAL_Delay(300);
 	}
-	segment_Update(NONE);
 	game_State=playing_Game;
+	htim14.Instance->CNT = 0;
+	game_time_s = 30;
 }
 
 void start_Game()
 {
-	if(sticks_Of_Dropped<10)
-	{
-		if(sticks_Of_Dropped==0)
-			DF_Choose(2); // Plays Music
 
-		HAL_GPIO_TogglePin(MCU_LED_GPIO_Port, MCU_LED_Pin);
-		if(difficulty<10)
-		{
-			segment_Update(number_Of_Stick[randomNumber[sticks_Of_Dropped]]);			// "9 - ..." is bug of simkeshi
-			Set_LED(9 - number_Of_Stick[randomNumber[sticks_Of_Dropped]], 64, 128, 255);
-			WS2812_Send();
-			HAL_Delay(difficulty * 100);
-			Set_LED(9 - number_Of_Stick[randomNumber[sticks_Of_Dropped]], 0, 0, 0);
-			WS2812_Send();
-		}
-		else
-			HAL_Delay(1000);
+	segment_num = game_time_s;
 
-		data = data & (~(1 << randomNumber[sticks_Of_Dropped]));
-		HAL_Delay(1500 + (800 - (difficulty*100)));
-		sticks_Of_Dropped++;
-	}
-	else if(sticks_Of_Dropped==10)
-	{
-		turn--;
-		sticks_Of_Dropped=0;
-		if (turn==0)
-			coin=0;
-		segment_Update(NONE);
-		DF_Pause();
-		data=0x0000;
-		game_State=waiting_For_Start;
-	}
+//	if(sticks_Of_Dropped<10)
+//	{
+//		if(sticks_Of_Dropped==0)
+//			DF_Choose(2); // Plays Music
+//
+//		HAL_GPIO_TogglePin(MCU_LED_GPIO_Port, MCU_LED_Pin);
+//		if(difficulty<10)
+//		{
+//			segment_Update(number_Of_Stick[randomNumber[sticks_Of_Dropped]]);			// "9 - ..." is bug of simkeshi
+//			Set_LED(9 - number_Of_Stick[randomNumber[sticks_Of_Dropped]], 64, 128, 255);
+//			WS2812_Send();
+//			HAL_Delay(difficulty * 100);
+//			Set_LED(9 - number_Of_Stick[randomNumber[sticks_Of_Dropped]], 0, 0, 0);
+//			WS2812_Send();
+//		}
+//		else
+//			HAL_Delay(1000);
+//
+//		data = data & (~(1 << randomNumber[sticks_Of_Dropped]));
+//		HAL_Delay(1500 + (800 - (difficulty*100)));
+//		sticks_Of_Dropped++;
+//	}
+//	else if(sticks_Of_Dropped==10)
+//	{
+//		turn--;
+//		sticks_Of_Dropped=0;
+//		if (turn==0)
+//			coin=0;
+//		segment_Update(NONE);
+//		DF_Pause();
+//		data=0x0000;
+//		game_State=waiting_For_Start;
+//	}
 
 }
 
@@ -443,43 +517,7 @@ void turnSettings()
 	}
 }
 
-void check_a_hold_key()
-{
-	if(a_hold_timer_cnt>=30)
-	{
-		if(game_State==difficulty_setting)
-		{
-			game_State =waiting_For_Start;
-			Flash_Write_Data(0x08009000, &difficulty, 1);
-		}
-		else
-			game_State=difficulty_setting;
 
-		a_hold_timer_cnt=0;
-		segment_Update(NONE);
-
-	}
-}
-
-
-void check_b_hold_key()
-{
-	if(b_hold_timer_cnt>=30)
-	{
-		if(game_State==turn_setting)
-		{
-			game_State =waiting_For_Start;
-			Flash_Write_Data(0x0800a000, &turn_num, 1);
-			coin = 0;
-			data=0x0000;
-		}
-		else
-			game_State=turn_setting;
-
-		b_hold_timer_cnt=0;
-		segment_Update(NONE);
-	}
-}
 // ASK usage
 void blinking()
 {
@@ -508,54 +546,10 @@ void check_And_Learn_Ask()
 			if((code[2] & 0x0F) == 0x01)	// A
 			{
 				HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 1);
-				coin = 1;
-				a_hold_timer_cnt++;
-				a_not_hold_timer_cnt = 0;
+				if(game_State == waiting_For_Start)
+					game_State = button_Clicked;
 				HAL_Delay(5);
 			}
-			else
-			{
-				a_not_hold_timer_cnt++;
-				if(a_not_hold_timer_cnt >= 4)
-				{
-					a_not_hold_timer_cnt = 0;
-					a_hold_timer_cnt = 0;
-				}
-			}
-
-			// B check hold and release
-			if((code[2] & 0x0F) == 0x02)	// B
-			{
-				HAL_GPIO_WritePin(MCU_LED_GPIO_Port, MCU_LED_Pin, 1);
-				b_hold_timer_cnt++;
-				b_not_hold_timer_cnt = 0;
-				HAL_Delay(5);
-			}
-			else
-			{
-				b_not_hold_timer_cnt++;
-				if(b_not_hold_timer_cnt >= 4)
-				{
-					b_not_hold_timer_cnt = 0;
-					b_hold_timer_cnt = 0;
-				}
-			}
-
-//			// Hold should be checked ....
-//			if(game_State==difficulty_setting)
-//			{
-//				segment_Update(difficulty);
-//				difficultySettings();
-//				timer_Update();
-//				check_a_hold_key();
-//			}
-//			else if(game_State==turn_setting)
-//			{
-//				segment_Update(turn_num);
-//				turnSettings();
-//				timer_Update();
-//				check_b_hold_key();
-//			}
 		}
 	}
 	else
@@ -595,14 +589,13 @@ void check_And_Learn_Ask()
 
 void timer_Update()
 {
-	if(htim14.Instance->CNT>150)
-	{
-		htim14.Instance->CNT=0;
-		state_Of_Segment++;
-		timer_For_Ask_Lern++;
-		button_Blinking=!button_Blinking;
-
-	}
+//	if(htim14.Instance->CNT>150)
+//	{
+//		htim14.Instance->CNT=0;
+//		state_Of_Segment++;
+//		timer_For_Ask_Lern++;
+//		button_Blinking=!button_Blinking;
+//	}
 }
 /* USER CODE END 0 */
 
@@ -645,7 +638,7 @@ int main(void)
 
 //	HAL_TIM_Base_Start(&htim3);
 	HAL_TIM_Base_Start_IT(&htim15);
-	HAL_TIM_Base_Start(&htim14);
+	HAL_TIM_Base_Start_IT(&htim14);
 //	seed = __HAL_TIM_GET_COUNTER(&htim3);
 //	srand(seed);
 	reset_Shift_Register();
@@ -693,49 +686,20 @@ int main(void)
 	while (1)
 	{
 
-
 		// Receive the ask code
 		check_And_Learn_Ask();
 
-//		// EXT_IO4 --> Automation Device Signal
-//		if(HAL_GPIO_ReadPin(Ext_IO4_GPIO_Port, Ext_IO4_Pin) == 0)
-//			coin = 1;
-////		coin = 1;
-
 		if(game_State==waiting_For_Start)//check coin & ask & start button
 		{
-			segment_Update(EFFECT);
 			timer_Update();
-			shuffle(randomNumber, 10);
-			if(coin)
-			{
-				if(button_Blinking)
-					data = 0xFFFF;
-				else
-					data = 0xFBFF;
-			}
-			check_a_hold_key();
-			check_b_hold_key();
-
 		}
 		else if(game_State==button_Clicked)
 			button_Click();
 		else if(game_State==playing_Game)
+		{
 			start_Game();
-		else if(game_State==difficulty_setting)
-		{
-			segment_Update(difficulty);
-			difficultySettings();
-			timer_Update();
-			check_a_hold_key();
 		}
-		else if(game_State==turn_setting)
-		{
-			segment_Update(turn_num);
-			turnSettings();
-			timer_Update();
-			check_b_hold_key();
-		}
+
 //			setting();
     /* USER CODE END WHILE */
 

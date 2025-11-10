@@ -73,10 +73,10 @@ void Error_Handler(void);
 #define Ext_IO3_Pin GPIO_PIN_2
 #define Ext_IO3_GPIO_Port GPIOB
 #define Ext_IO3_EXTI_IRQn EXTI2_3_IRQn
-#define Ext_IO2_Pin GPIO_PIN_10
-#define Ext_IO2_GPIO_Port GPIOB
-#define Ext_IO1_Pin GPIO_PIN_11
-#define Ext_IO1_GPIO_Port GPIOB
+#define SA2_Pin GPIO_PIN_10
+#define SA2_GPIO_Port GPIOB
+#define SA1_Pin GPIO_PIN_11
+#define SA1_GPIO_Port GPIOB
 #define MCU_LED_Pin GPIO_PIN_12
 #define MCU_LED_GPIO_Port GPIOB
 #define Coin_Reader_Pin GPIO_PIN_13
