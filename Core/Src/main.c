@@ -373,8 +373,8 @@ void start_Game()
 	{
 		turn--;
 		sticks_Of_Dropped=0;
-		if (turn==0)
-			coin=0;
+//		if (turn==0)
+//			coin=0;
 		segment_Update(NONE);
 		DF_Pause();
 		data=0x0000;
@@ -700,7 +700,7 @@ int main(void)
 //		// EXT_IO4 --> Automation Device Signal
 //		if(HAL_GPIO_ReadPin(Ext_IO4_GPIO_Port, Ext_IO4_Pin) == 0)
 //			coin = 1;
-////		coin = 1;
+		coin = 1;
 
 		if(game_State==waiting_For_Start)//check coin & ask & start button
 		{
