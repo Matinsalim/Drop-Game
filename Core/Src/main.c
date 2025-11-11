@@ -41,6 +41,8 @@
 #define NONE 120
 #define PAUSE 98
 #define EFFECT 99
+
+#define END_OF_LEDs_NUM	76
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -87,7 +89,7 @@ uint16_t data = 0x0000;
 uint32_t seed = 0;
 uint8_t x = 0;
 uint8_t state_Of_Segment = 0;
-uint8_t timer_For_Ask_Lern = 0;
+uint16_t timer_For_Ask_Lern = 0;
 uint8_t remote_pressed = false;
 uint8_t turn = 0;
 ask_t rf433;
@@ -99,6 +101,8 @@ uint8_t button_Blinking = 0;
 uint8_t a_hold_timer_cnt = 0, a_not_hold_timer_cnt = 0;
 uint8_t b_hold_timer_cnt = 0, b_not_hold_timer_cnt = 0;
 uint8_t coin = 0;
+uint8_t temp_sound_played = 0, change_music_to_10 = 0, game_over = 0;
+uint8_t win1 = 0, win2 = 0;
 
 // Settings
 uint32_t difficulty;		// H, 0, 2, 4, 6, 8
@@ -106,7 +110,7 @@ uint32_t turn_num;		// 1, 2, 3
 
 
 uint8_t segment_num = 0;
-uint8_t game_time_s = 0;
+uint8_t game_time_s = 0, play_sound_temp_time = 0;
 uint8_t seg_state = 0;
 uint16_t game_timer_ms = 0;
 uint32_t hall_sensor_ints = 0;
@@ -137,6 +141,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN)
 		if(game_State == playing_Game)
 		{
 			hall_sensor_ints++;
+			if(hall_sensor_ints == 100)
+				win1 = 1;
+			else if(hall_sensor_ints == 600)
+				win2 = 0;
 		}
 	}
 }
@@ -189,7 +197,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			{
 				game_timer_ms = 0;
 				game_time_s--;
+				if(game_time_s == 10)
+					change_music_to_10 = 1;
+				else if(game_time_s == 0)
+					game_over = 1;
 			}
+		}
+
+		// ASK
+		if(ask_learning_state == learning)
+		{
+			timer_For_Ask_Lern++;
+			if(timer_For_Ask_Lern > 10000)
+				timer_For_Ask_Lern = 0;
 		}
 	}
 }
@@ -426,7 +446,7 @@ void button_Click()
 	game_State=playing_Game;
 	DF_Choose(2);
 	htim14.Instance->CNT = 0;
-	game_time_s = 30;
+	game_time_s = 40;
 }
 
 void start_Game()
@@ -434,35 +454,38 @@ void start_Game()
 
 	segment_num = game_time_s;
 
-	// write codes with "hall_sensor_ints"
-//	if(hall_sensor_ints < 30000)
-//		progress = hall_sensor_ints / 1000;
-//	else if(hall_sensor_ints < 100000)
-//		progress = hall_sensor_ints / 2000;
-//	else if(hall_sensor_ints < 150000)
-//		progress = hall_sensor_ints / 1875;
-
-//	if(hall_sensor_ints < 30)
-//		progress = hall_sensor_ints / 1;
-//	else if(hall_sensor_ints < 100)
-//		progress = hall_sensor_ints / 2;
-//	else if(hall_sensor_ints < 150)
-//		progress = hall_sensor_ints / 1;
-
-	if(hall_sensor_ints == 10)
+	if(win1)
 	{
-		DF_Choose(3);
-		hall_sensor_ints++;
+		DF_Choose(4);
+		temp_sound_played = 1;
+		play_sound_temp_time = game_time_s;
+		win1 = 0;
 	}
-	else if(hall_sensor_ints == 20)
+	else if(win2)
 	{
-		DF_Choose(3);
-		hall_sensor_ints++;
+		DF_Choose(4);
+		temp_sound_played = 1;
+		play_sound_temp_time = game_time_s;
+		win2 = 0;
 	}
-	else if(hall_sensor_ints == 30)
+
+
+	if(hall_sensor_ints < 100)
+	{
+		progress = hall_sensor_ints / 3;
+	}
+	else if(hall_sensor_ints < 600)
+	{
+		progress = hall_sensor_ints / 12 + 25;
+	}
+	else if(hall_sensor_ints < 1200)
+	{
+		progress = (hall_sensor_ints >> 4) + 38;
+	}
+
+	if(progress > 98)
 	{
 		DF_Choose(5);
-		hall_sensor_ints++;
 
 		data = 0xFFF;
 		reset_Shift_Register();
@@ -473,13 +496,103 @@ void start_Game()
 		reset_Shift_Register();
 		HAL_GPIO_WritePin(MR_GPIO_Port, MR_Pin, 1);
 		ShiftOut(data);
+
+		hall_sensor_ints = 0;
+		progress = 0;
+
+		for(int i = 0; i < MAX_LED; i++)
+			Set_LED(i, 0, 0, 255);
+		WS2812_Send();
+		HAL_Delay(1000);
+		for(int i = 0; i < MAX_LED; i++)
+			Set_LED(i, 0, 0, 0);
+		WS2812_Send();
+		HAL_Delay(1000);
+		for(int i = 0; i < MAX_LED; i++)
+			Set_LED(i, 0, 0, 255);
+		WS2812_Send();
+		HAL_Delay(1000);
+		for(int i = 0; i < MAX_LED; i++)
+			Set_LED(i, 0, 0, 0);
+		WS2812_Send();
+		HAL_Delay(1000);
+		for(int i = 0; i < MAX_LED; i++)
+			Set_LED(i, 0, 0, 255);
+		WS2812_Send();
+		HAL_Delay(1000);
+		for(int i = 0; i < MAX_LED; i++)
+			Set_LED(i, 0, 0, 0);
+		WS2812_Send();
+		HAL_Delay(2000);
+
+		game_over = 0;
+		win1 = 0;
+		win2 = 0;
+
+		game_State = waiting_For_Start;
 	}
 
 
-//	Set_LED(END_OF_LEDs_NUM - (progress * END_OF_LEDs_NUM / 100), 255, 255, 255);
-//	WS2812_Send();
+	if(temp_sound_played == 1)
+	{
+		if(play_sound_temp_time - game_time_s > 3)
+		{
+			if(game_time_s < 10)
+				DF_Choose(3);
+			else
+				DF_Choose(2);
+			temp_sound_played = 0;
+		}
+	}
 
+	if(change_music_to_10 == 1)
+	{
+		change_music_to_10 = 0;
+		DF_Choose(3);
+	}
 
+//
+//
+	Set_LED(END_OF_LEDs_NUM - (uint8_t) ((uint32_t) progress * (uint32_t) END_OF_LEDs_NUM / 100), 255, 255, 255);
+	WS2812_Send();
+
+	if(game_over)
+	{
+		game_over = 0;
+		win1 = 0;
+		win2 = 0;
+		DF_Choose(6);
+		game_State = waiting_For_Start;
+		segment_num = 0;
+
+		hall_sensor_ints = 0;
+		progress = 0;
+
+		for(int i = 0; i < MAX_LED; i++)
+			Set_LED(i, 255, 0, 0);
+		WS2812_Send();
+		HAL_Delay(1000);
+		for(int i = 0; i < MAX_LED; i++)
+			Set_LED(i, 0, 0, 0);
+		WS2812_Send();
+		HAL_Delay(1000);
+		for(int i = 0; i < MAX_LED; i++)
+			Set_LED(i, 255, 0, 0);
+		WS2812_Send();
+		HAL_Delay(1000);
+		for(int i = 0; i < MAX_LED; i++)
+			Set_LED(i, 0, 0, 0);
+		WS2812_Send();
+		HAL_Delay(1000);
+		for(int i = 0; i < MAX_LED; i++)
+			Set_LED(i, 255, 0, 0);
+		WS2812_Send();
+		HAL_Delay(1000);
+		for(int i = 0; i < MAX_LED; i++)
+			Set_LED(i, 0, 0, 0);
+		WS2812_Send();
+		HAL_Delay(2000);
+	}
 }
 
 
@@ -533,7 +646,7 @@ void check_And_Learn_Ask()
 	}
 	else if(ask_learning_state == learning)
 	{
-		if(timer_For_Ask_Lern==35)// wait for 5 seconds
+		if(timer_For_Ask_Lern>=5000)// wait for 5 seconds
 		{
 			// ask code is valid, so save it ...
 			ask_code_in_flash = code[0] | (code[1] << 8) | (code[2] << 16);
@@ -616,36 +729,59 @@ int main(void)
 
 //	memset(LED_Data, 0, sizeof(LED_Data));
 
-	HAL_Delay(500);
-	  for(int i=0; i < 5; i++)
-	  {
-		  Set_LED(5 - i, 255, 255, 255);
-		  Set_LED(i + 5, 255, 255, 255);
-		  WS2812_Send();
-		  HAL_Delay(200);
-		  Set_LED(5 - i, 0, 0, 0);
-		  Set_LED(i + 5, 0, 0, 0);
-		  WS2812_Send();
-	  }
+//	HAL_Delay(500);
+//	  for(int i=0; i < 5; i++)
+//	  {
+//		  Set_LED(5 - i, 255, 255, 255);
+//		  Set_LED(i + 5, 255, 255, 255);
+//		  WS2812_Send();
+//		  HAL_Delay(200);
+//		  Set_LED(5 - i, 0, 0, 0);
+//		  Set_LED(i + 5, 0, 0, 0);
+//		  WS2812_Send();
+//	  }
+//
+//	  HAL_Delay(500);
+//
+//	  for(int j = 0; j < 3; j++)
+//	  {
+//		  for(int i = 0; i < 10; i++)
+//			  Set_LED(i, 255, 255, 255);
+//		  WS2812_Send();
+//		  HAL_Delay(150);
+//		  for(int i = 0; i < 10; i++)
+//			  Set_LED(i, 0, 0, 0);
+//		  WS2812_Send();
+//		  HAL_Delay(150);
+//	  }
 
-	  HAL_Delay(500);
-
-	  for(int j = 0; j < 3; j++)
-	  {
-		  for(int i = 0; i < 10; i++)
-			  Set_LED(i, 255, 255, 255);
-		  WS2812_Send();
-		  HAL_Delay(150);
-		  for(int i = 0; i < 10; i++)
-			  Set_LED(i, 0, 0, 0);
-		  WS2812_Send();
-		  HAL_Delay(150);
-	  }
+//	Set_LED(END_OF_LEDs_NUM - (progress * END_OF_LEDs_NUM / 100), 255, 255, 255);
+//	WS2812_Send();
 
 
 	//  HAL_Delay(3000);
 		DF_Init(30);
 
+//	for(int i =0; i < 100; i++)
+//	{
+//		Set_LED(i, 255, 255, 255);
+//		WS2812_Send();
+//		HAL_Delay(500);
+//	}
+
+//		data = 0xFFF;
+//		reset_Shift_Register();
+//		HAL_GPIO_WritePin(MR_GPIO_Port, MR_Pin, 1);
+//		ShiftOut(data);
+//		HAL_Delay(500);
+//		data = 0x000;
+//		reset_Shift_Register();
+//		HAL_GPIO_WritePin(MR_GPIO_Port, MR_Pin, 1);
+//		ShiftOut(data);
+
+		for(int i = 0; i < MAX_LED; i++)
+			Set_LED(i, 0, 0, 0);
+		WS2812_Send();
   /* USER CODE END 2 */
 
   /* Infinite loop */

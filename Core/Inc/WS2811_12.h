@@ -21,7 +21,7 @@
 
 #define WS_TIMER_H			&htim3
 #define WS_TIMER_CHANNEL	TIM_CHANNEL_4
-#define MAX_LED				20
+#define MAX_LED				100
 
 // Sum of these values should be Period Of PWM
 #define WS_LOGIC_ONE_CCR		40
