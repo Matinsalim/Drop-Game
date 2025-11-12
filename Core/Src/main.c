@@ -32,6 +32,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "WS2811_12.h"
+
+#include <math.h>
+#include <stdint.h>
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -107,6 +111,8 @@ uint8_t win1 = 0, win2 = 0;
 // Settings
 uint32_t difficulty;		// H, 0, 2, 4, 6, 8
 uint32_t turn_num;		// 1, 2, 3
+
+uint32_t now = 0;
 
 
 uint8_t segment_num = 0;
@@ -203,6 +209,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 					game_over = 1;
 			}
 		}
+
+		now++;
 
 		// ASK
 		if(ask_learning_state == learning)
@@ -410,6 +418,46 @@ void ShiftOut(uint16_t data)
 }
 
 
+
+// پارامترهای افکت
+static uint32_t last_update = 0;
+static int offset = 0;
+static int speed = 30; // عدد کمتر = حرکت کندتر
+
+// تابع تبدیل از hue به RGB
+void hsv_to_rgb(float h, float s, float v, uint8_t *r, uint8_t *g, uint8_t *b) {
+    float c = v * s;
+    float x = c * (1 - fabs(fmod(h * 6, 2) - 1));
+    float m = v - c;
+    float r1, g1, b1;
+
+    if (h < 1/6.0) { r1=c; g1=x; b1=0; }
+    else if (h < 2/6.0) { r1=x; g1=c; b1=0; }
+    else if (h < 3/6.0) { r1=0; g1=c; b1=x; }
+    else if (h < 4/6.0) { r1=0; g1=x; b1=c; }
+    else if (h < 5/6.0) { r1=x; g1=0; b1=c; }
+    else { r1=c; g1=0; b1=x; }
+
+    *r = (r1 + m) * 255;
+    *g = (g1 + m) * 255;
+    *b = (b1 + m) * 255;
+}
+
+void led_effect_update(void) {
+    if (now - last_update < 30) return; // هر 30ms آپدیت کن
+    last_update = now;
+
+    for (int i = 0; i < END_OF_LEDs_NUM; i++) {
+        float hue = fmod((float)(i + offset) / END_OF_LEDs_NUM, 1.0f);
+        uint8_t r, g, b;
+        hsv_to_rgb(hue, 1.0, 0.5, &r, &g, &b);
+        Set_LED(i, r, g, b);
+    }
+    WS2812_Send();
+
+    offset = (offset + 1) % END_OF_LEDs_NUM;
+}
+
 //void display_segment()
 //{
 //	int d0 = segment_num % 10;
@@ -435,6 +483,9 @@ void display_nothing()
 
 void button_Click()
 {
+	for(int i = 0; i < MAX_LED; i++)
+		Set_LED(i, 0, 0, 0);
+	WS2812_Send();
 	DF_Choose(1);
 	for(int i = 3; i >= 0; i--)
 	{
@@ -651,7 +702,7 @@ void check_And_Learn_Ask()
 			// ask code is valid, so save it ...
 			ask_code_in_flash = code[0] | (code[1] << 8) | (code[2] << 16);
 			blinking();
-			Flash_Write_Data(0x08008000, &ask_code_in_flash, 1);
+			Flash_Write_Data(0x0800a000, &ask_code_in_flash, 1);
 			ask_learning_state = learned;
 		}
 
@@ -723,9 +774,9 @@ int main(void)
 //	srand(seed);
 	reset_Shift_Register();
 	ask_init(&rf433,ASK_IN_SIG_GPIO_Port,ASK_IN_SIG_Pin);
-	Flash_Read_Data(0x08008000, &ask_code_in_flash, 1);	// Read ASK code in Flash
-	Flash_Read_Data(0x08009000, &difficulty, 1);
-	Flash_Read_Data(0x0800a000, &turn_num, 1);
+	Flash_Read_Data(0x0800a000, &ask_code_in_flash, 1);	// Read ASK code in Flash
+//	Flash_Read_Data(0x08009000, &difficulty, 1);
+//	Flash_Read_Data(0x0800a000, &turn_num, 1);
 
 //	memset(LED_Data, 0, sizeof(LED_Data));
 
@@ -795,6 +846,7 @@ int main(void)
 		if(game_State==waiting_For_Start)//check coin & ask & start button
 		{
 			timer_Update();
+			led_effect_update();
 		}
 		else if(game_State==button_Clicked)
 			button_Click();
