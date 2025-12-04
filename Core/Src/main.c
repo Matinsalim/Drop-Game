@@ -659,6 +659,10 @@ int main(void)
 		// Receive the ask code
 		check_And_Learn_Ask();
 
+		// EXT_IO4 --> Automation Device Signal
+		if(HAL_GPIO_ReadPin(Ext_IO4_GPIO_Port, Ext_IO4_Pin) == 0)
+			coin = 1;
+
 		if(game_State==waiting_For_Start)//check coin & ask & start button
 		{
 			segment_Update(EFFECT);

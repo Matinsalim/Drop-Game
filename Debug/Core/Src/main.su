@@ -14,5 +14,5 @@
 ../Core/Src/main.c:489:6:check_And_Learn_Ask	8	static
 ../Core/Src/main.c:590:6:timer_Update	8	static
 ../Core/Src/main.c:607:5:main	8	static
-../Core/Src/main.c:708:6:SystemClock_Config	80	static
-../Core/Src/main.c:750:6:Error_Handler	8	static,ignoring_inline_asm
+../Core/Src/main.c:712:6:SystemClock_Config	80	static
+../Core/Src/main.c:754:6:Error_Handler	8	static,ignoring_inline_asm
