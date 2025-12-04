@@ -31,7 +31,10 @@
 #include "FLASH_PAGE.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef WS_LEDS
 #include "WS2811_12.h"
+#endif
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -41,6 +44,7 @@
 #define NONE 97
 #define PAUSE 98
 #define EFFECT 99
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -356,11 +360,16 @@ void start_Game()
 		if(difficulty<10)
 		{
 			segment_Update(number_Of_Stick[randomNumber[sticks_Of_Dropped]]);			// "9 - ..." is bug of simkeshi
+
+#ifdef WS_LEDS
 			Set_LED(9 - number_Of_Stick[randomNumber[sticks_Of_Dropped]], 64, 128, 255);
 			WS2812_Send();
+#endif
 			HAL_Delay(difficulty * 100);
+#ifdef WS_LEDS
 			Set_LED(9 - number_Of_Stick[randomNumber[sticks_Of_Dropped]], 0, 0, 0);
 			WS2812_Send();
+#endif
 		}
 		else
 			HAL_Delay(1000);
@@ -656,6 +665,7 @@ int main(void)
 
 //	memset(LED_Data, 0, sizeof(LED_Data));
 
+#ifdef WS_LEDS
 	HAL_Delay(500);
 	  for(int i=0; i < 5; i++)
 	  {
@@ -681,7 +691,9 @@ int main(void)
 		  WS2812_Send();
 		  HAL_Delay(150);
 	  }
-
+#else
+	  HAL_Delay(3000);
+#endif
 
 	//  HAL_Delay(3000);
 		DF_Init(30);

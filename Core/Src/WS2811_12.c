@@ -5,6 +5,7 @@
  *      Author: Mohsen
  */
 
+#ifdef WS_LEDS
 
 #include "WS2811_12.h"
 
@@ -69,5 +70,5 @@ void WS2812_Send (void)
 
 
 
-
+#endif
 

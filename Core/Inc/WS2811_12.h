@@ -5,8 +5,12 @@
  *      Author: Mohsen
  */
 
+#ifdef WS_LEDS
+
 #ifndef INC_WS2811_12_H_
 #define INC_WS2811_12_H_
+
+
 
 
 //	Initialization (For CubeMX)
@@ -37,4 +41,16 @@ extern int datasentflag;
 extern uint8_t LED_Data[MAX_LED][4];
 
 
+
+
+
 #endif /* INC_WS2811_12_H_ */
+
+#endif
+
+
+
+
+
+
+
