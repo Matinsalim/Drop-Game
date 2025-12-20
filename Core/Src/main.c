@@ -41,6 +41,7 @@
 /* USER CODE BEGIN PTD */
 #define H 12
 #define E 16
+#define F 17
 
 #define NONE 97
 #define EFFECT_1 99
@@ -114,7 +115,7 @@ uint8_t x = 0;
 
 // Settings
 uint32_t difficulty;		//E, H, 0, 4, 8
-uint32_t turn_num;		// 1, 2, 3
+uint32_t turn_num;		// 1, 2, 3, F
 
 uint32_t remote_duration_hold = 0 ,remote_start_hold = 0 , remote_is_hold = 0 ,a_hold = 0, b_hold = 0 ,c_hold = 0;
 
@@ -282,6 +283,16 @@ void segment_Update(int num)
 		HAL_GPIO_WritePin(F_GPIO_Port, F_Pin,1);
 		HAL_GPIO_WritePin(G_GPIO_Port, G_Pin,1);
 	}
+	else if(num==F)
+	{
+		HAL_GPIO_WritePin(A_GPIO_Port, A_Pin,1);
+		HAL_GPIO_WritePin(B_GPIO_Port, B_Pin,0);
+		HAL_GPIO_WritePin(C_GPIO_Port, C_Pin,0);
+		HAL_GPIO_WritePin(D_GPIO_Port, D_Pin,0);
+		HAL_GPIO_WritePin(E_GPIO_Port, E_Pin,1);
+		HAL_GPIO_WritePin(F_GPIO_Port, F_Pin,1);
+		HAL_GPIO_WritePin(G_GPIO_Port, G_Pin,1);
+	}
 	//	else if(num==PAUSE)
 	//	{
 	//		HAL_GPIO_WritePin(A_GPIO_Port, A_Pin,1);
@@ -402,7 +413,10 @@ void start_Game()
 			if(difficulty < 16)
 				DF_Choose(2); // Plays Music
 			else
+			{
 				DF_Choose(3); // Plays Music
+				HAL_Delay(1600);
+			}
 		}
 
 		if(difficulty<10)
@@ -439,7 +453,8 @@ void start_Game()
 	}
 	else if(sticks_Of_Dropped==10)
 	{
-		turn--;
+		if(turn_num != F)
+			turn--;
 		sticks_Of_Dropped=0;
 		if (turn==0)
 			coin=0;
@@ -473,7 +488,9 @@ void turnSettings()
 		while(HAL_GPIO_ReadPin(Ext_IO3_GPIO_Port, Ext_IO3_Pin) == 0)
 			HAL_Delay(50);
 		turn_num += 1;
-		if(turn_num >= 4)
+		if(turn_num == 4)
+			turn_num = F;
+		else if(turn_num >= 5)
 			turn_num = 1;
 	}
 }
@@ -506,6 +523,7 @@ void check_b_hold_key()
 			game_State =waiting_For_Start;
 			Flash_Write_Data(0x0800a000, &turn_num, 1);
 			coin = 0;
+			turn = 0;
 			reset_Magnets();
 		}
 		else
@@ -775,10 +793,13 @@ int main(void)
 		// Receive the ask code
 		check_And_Learn_Ask();
 
-		//		// EXT_IO4 --> Automation Device Signal
-		//		if(HAL_GPIO_ReadPin(Ext_IO4_GPIO_Port, Ext_IO4_Pin) == 0)
-		//			coin = 1;
-		////		coin = 1;
+		// EXT_IO4 --> Automation Device Signal
+		if(HAL_GPIO_ReadPin(Coin_Reader_GPIO_Port, Coin_Reader_Pin) == 0)
+			coin = 1;
+
+		// F mode (Free)
+		if(turn_num == F)
+			coin = 1;
 
 		if(game_State==waiting_For_Start)//check coin & ask & start button
 		{
