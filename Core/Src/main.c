@@ -152,12 +152,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	reset_Shift_Register();
 	HAL_GPIO_WritePin(MR_GPIO_Port, MR_Pin, 1);
-	if(x)
+//	if(x)
 	ShiftOut(data);
-	else
-	ShiftOut(data_before_droped);
-
-	x =! x;
+//	else
+//	ShiftOut(data_before_droped);
+//
+//	x =! x;
 
 }
 //=================================================================================================================================================================================
