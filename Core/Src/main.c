@@ -46,6 +46,7 @@
 #define NONE 97
 #define EFFECT_1 99
 #define EFFECT_2 100
+#define EFFECT_321 103
 
 
 
@@ -362,6 +363,18 @@ void segment_Update(int num)
 		HAL_Delay(500);
 		HAL_GPIO_WritePin(D_GPIO_Port, D_Pin,0);
 	}
+	else if(num==EFFECT_321)
+	{
+		HAL_GPIO_WritePin(A_GPIO_Port, A_Pin,1);
+		HAL_GPIO_WritePin(G_GPIO_Port, G_Pin,1);
+		HAL_GPIO_WritePin(D_GPIO_Port, D_Pin,1);
+		HAL_Delay(940);
+		HAL_GPIO_WritePin(A_GPIO_Port, A_Pin,0);
+		HAL_Delay(940);
+		HAL_GPIO_WritePin(G_GPIO_Port, G_Pin,0);
+		HAL_Delay(940);
+		HAL_GPIO_WritePin(D_GPIO_Port, D_Pin,0);
+	}
 }
 //=================================================================================================================================================================================
 void shuffle(uint8_t *array, uint8_t size)
@@ -391,11 +404,14 @@ void button_Click()
 {
 	DF_Choose(1);
 	data=0xFFFF;
-	for(int i = 3; i>=0; i--)
-	{
-		segment_Update(i);
-		HAL_Delay(1000);
-	}
+//	for(int i = 3; i>=0; i--)
+//	{
+//		segment_Update(i);
+//		HAL_Delay(1000);
+//	}
+	segment_Update(NONE);
+	segment_Update(EFFECT_321);
+	HAL_Delay(1000);
 	segment_Update(NONE);
 	game_State=playing_Game;
 }
