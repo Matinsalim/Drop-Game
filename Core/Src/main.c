@@ -153,12 +153,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	reset_Shift_Register();
 	HAL_GPIO_WritePin(MR_GPIO_Port, MR_Pin, 1);
-//	if(x)
-	ShiftOut(data);
-//	else
-//	ShiftOut(data_before_droped);
+	if(x)
+		ShiftOut(data);
+	else
+		ShiftOut(data_before_droped);
 //
-//	x =! x;
+	x =! x;
 
 }
 //=================================================================================================================================================================================
@@ -421,9 +421,6 @@ void start_Game()
 	if(sticks_Of_Dropped<10)
 	{
 
-		data_before_droped = data_before_droped  & (~(1 << randomNumber[sticks_Of_Dropped]));
-		HAL_Delay(250);
-
 		if(sticks_Of_Dropped==0)
 		{
 			if(difficulty < 16)
@@ -451,14 +448,18 @@ void start_Game()
 		}
 		else if(difficulty == 16)
 		{
-			data = data  & (~(1 << randomNumber[sticks_Of_Dropped]));
-
-			sticks_Of_Dropped++;
 			data_before_droped = data_before_droped  & (~(1 << randomNumber[sticks_Of_Dropped]));
-			HAL_Delay(250);
+			HAL_Delay(100);
+			data = data  & (~(1 << randomNumber[sticks_Of_Dropped]));
+			sticks_Of_Dropped++;
 		}
 
+
+
+		data_before_droped = data_before_droped  & (~(1 << randomNumber[sticks_Of_Dropped]));
+		HAL_Delay(100);
 		data = data & (~(1 << randomNumber[sticks_Of_Dropped]));
+
 		HAL_Delay(1250 + (800 - (difficulty*100)));
 		if(difficulty == 16)
 			HAL_Delay(1100);
